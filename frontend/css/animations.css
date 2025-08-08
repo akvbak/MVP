@@ -1,0 +1,479 @@
+/* SpinX Animations */
+
+/* Keyframe Animations */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes wheelSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes bounce {
+    0%, 20%, 53%, 80%, 100% {
+        transform: translate3d(0, 0, 0);
+    }
+    40%, 43% {
+        transform: translate3d(0, -30px, 0);
+    }
+    70% {
+        transform: translate3d(0, -15px, 0);
+    }
+    90% {
+        transform: translate3d(0, -4px, 0);
+    }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+    20%, 40%, 60%, 80% { transform: translateX(2px); }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes zoomIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes glow {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(245, 158, 11, 0.6);
+    }
+}
+
+@keyframes colorShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+@keyframes wiggle {
+    0%, 7% { transform: rotateZ(0); }
+    15% { transform: rotateZ(-15deg); }
+    20% { transform: rotateZ(10deg); }
+    25% { transform: rotateZ(-10deg); }
+    30% { transform: rotateZ(6deg); }
+    35% { transform: rotateZ(-4deg); }
+    40%, 100% { transform: rotateZ(0); }
+}
+
+@keyframes rollDice {
+    0% { transform: rotate(0deg) scale(1); }
+    25% { transform: rotate(90deg) scale(1.1); }
+    50% { transform: rotate(180deg) scale(1); }
+    75% { transform: rotate(270deg) scale(1.1); }
+    100% { transform: rotate(360deg) scale(1); }
+}
+
+@keyframes mineReveal {
+    0% {
+        transform: scale(1) rotateY(0deg);
+        background: var(--primary-blue);
+    }
+    50% {
+        transform: scale(1.1) rotateY(90deg);
+        background: var(--primary-yellow);
+    }
+    100% {
+        transform: scale(1) rotateY(180deg);
+    }
+}
+
+@keyframes explode {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.5);
+        opacity: 0.7;
+    }
+    100% {
+        transform: scale(2);
+        opacity: 0;
+    }
+}
+
+@keyframes coinFlip {
+    0% { transform: rotateY(0); }
+    50% { transform: rotateY(90deg) scale(1.1); }
+    100% { transform: rotateY(180deg); }
+}
+
+@keyframes sparkle {
+    0%, 100% {
+        opacity: 0;
+        transform: scale(0);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(0);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+/* Animation Classes */
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+.animate-wheel-spin {
+    animation: wheelSpin 3s ease-out;
+}
+
+.animate-bounce {
+    animation: bounce 2s infinite;
+}
+
+.animate-shake {
+    animation: shake 0.5s ease-in-out;
+}
+
+.animate-pulse {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.animate-fade-in-down {
+    animation: fadeInDown 0.6s ease-out;
+}
+
+.animate-slide-in-left {
+    animation: slideInLeft 0.6s ease-out;
+}
+
+.animate-slide-in-right {
+    animation: slideInRight 0.6s ease-out;
+}
+
+.animate-zoom-in {
+    animation: zoomIn 0.4s ease-out;
+}
+
+.animate-glow {
+    animation: glow 2s ease-in-out infinite;
+}
+
+.animate-float {
+    animation: float 3s ease-in-out infinite;
+}
+
+.animate-wiggle {
+    animation: wiggle 1s ease-in-out;
+}
+
+.animate-roll-dice {
+    animation: rollDice 1s ease-in-out;
+}
+
+.animate-mine-reveal {
+    animation: mineReveal 0.5s ease-in-out;
+}
+
+.animate-explode {
+    animation: explode 0.6s ease-out;
+}
+
+.animate-coin-flip {
+    animation: coinFlip 1s ease-in-out;
+}
+
+.animate-sparkle {
+    animation: sparkle 1.5s ease-in-out;
+}
+
+.animate-ripple {
+    animation: ripple 0.8s ease-out;
+}
+
+/* Game-specific Animations */
+.wheel-spinning {
+    animation: wheelSpin 3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.dice-rolling {
+    animation: rollDice 1s ease-in-out;
+}
+
+.mine-cell-safe {
+    animation: mineReveal 0.5s ease-in-out forwards;
+}
+
+.mine-cell-bomb {
+    animation: explode 0.6s ease-out forwards;
+}
+
+/* Winning Animations */
+.win-celebration {
+    animation: bounce 1s ease-in-out, glow 1s ease-in-out;
+}
+
+.big-win-celebration {
+    animation: bounce 1s ease-in-out, glow 2s ease-in-out, pulse 1s ease-in-out infinite;
+}
+
+/* Button Hover Animations */
+.btn-primary:hover,
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+}
+
+.btn-primary:active,
+.btn-secondary:active {
+    transform: translateY(0);
+}
+
+/* Card Hover Animations */
+.feature-card:hover,
+.game-card:hover,
+.stat-card:hover {
+    transform: translateY(-4px);
+    transition: all 0.3s ease;
+}
+
+/* Loading Animations */
+.loading-spinner {
+    animation: spin 1s linear infinite;
+}
+
+.loading-dots::after {
+    content: '';
+    animation: dots 1.5s infinite;
+}
+
+@keyframes dots {
+    0%, 20% { content: '.'; }
+    40% { content: '..'; }
+    60%, 100% { content: '...'; }
+}
+
+/* Gradient Animations */
+.gradient-animated {
+    background: linear-gradient(-45deg, var(--primary-red), var(--primary-yellow), var(--primary-blue), var(--secondary-red));
+    background-size: 400% 400%;
+    animation: colorShift 4s ease infinite;
+}
+
+/* Progress Animations */
+@keyframes progressFill {
+    from { width: 0%; }
+    to { width: var(--progress-width, 100%); }
+}
+
+.progress-animated {
+    animation: progressFill 2s ease-out;
+}
+
+/* Notification Animations */
+.toast-enter {
+    animation: slideInRight 0.3s ease-out;
+}
+
+.toast-exit {
+    animation: slideInRight 0.3s ease-out reverse;
+}
+
+/* Stagger Animations */
+.stagger-item:nth-child(1) { animation-delay: 0.1s; }
+.stagger-item:nth-child(2) { animation-delay: 0.2s; }
+.stagger-item:nth-child(3) { animation-delay: 0.3s; }
+.stagger-item:nth-child(4) { animation-delay: 0.4s; }
+.stagger-item:nth-child(5) { animation-delay: 0.5s; }
+
+/* Hover Glow Effects */
+.glow-on-hover {
+    transition: all 0.3s ease;
+}
+
+.glow-on-hover:hover {
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+    transform: translateY(-2px);
+}
+
+/* Number Counter Animation */
+@keyframes countUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.number-counter {
+    animation: countUp 0.5s ease-out;
+}
+
+/* Confetti Animation */
+@keyframes confetti-fall {
+    0% {
+        transform: translateY(-100vh) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+.confetti {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    animation: confetti-fall 3s linear infinite;
+}
+
+.confetti:nth-child(odd) {
+    background: var(--primary-yellow);
+    animation-delay: 0s;
+}
+
+.confetti:nth-child(even) {
+    background: var(--primary-red);
+    animation-delay: 0.5s;
+}
+
+/* Special Effects */
+.particle-effect {
+    position: relative;
+    overflow: hidden;
+}
+
+.particle-effect::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle, var(--primary-yellow) 1px, transparent 1px);
+    background-size: 20px 20px;
+    opacity: 0;
+    animation: sparkle 2s ease-in-out infinite;
+}
+
+/* Responsive Animation Adjustments */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .animate-bounce,
+    .animate-float,
+    .animate-pulse {
+        animation-duration: 1s;
+    }
+    
+    .wheel-spinning {
+        animation-duration: 2s;
+    }
+    
+    .animate-fade-in-up,
+    .animate-fade-in-down,
+    .animate-slide-in-left,
+    .animate-slide-in-right {
+        animation-duration: 0.4s;
+    }
+}

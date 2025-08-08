@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpinX - Game of Chance Platform</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="img/spinxlogo.png" alt="SpinX Logo" class="logo-img">
+                <span class="logo-text">SpinX</span>
+            </div>
+            <div class="nav-menu" id="nav-menu">
+                <a href="#home" class="nav-link active">Home</a>
+                <a href="#games" class="nav-link">Games</a>
+                <a href="#wallet" class="nav-link">Wallet</a>
+                <a href="#leaderboard" class="nav-link">Leaderboard</a>
+                <a href="#profile" class="nav-link">Profile</a>
+            </div>
+            <div class="nav-actions">
+                <div class="balance-display" id="balance-display">
+                    <i class="fas fa-wallet"></i>
+                    <span id="user-balance">₦0.00</span>
+                </div>
+                <button class="btn-login" id="login-btn">Login</button>
+                <button class="btn-register" id="register-btn">Register</button>
+                <button class="btn-logout hidden" id="logout-btn">Logout</button>
+            </div>
+            <div class="hamburger" id="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Home Section -->
+        <section id="home" class="section active">
+            <div class="hero">
+                <div class="hero-content">
+                    <h1 class="hero-title">Welcome to <span class="highlight">SpinX</span></h1>
+                    <p class="hero-subtitle">Your ultimate game of chance platform</p>
+                    <div class="hero-stats">
+                        <div class="stat">
+                            <span class="stat-number">10,000+</span>
+                            <span class="stat-label">Players</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number">₦5M+</span>
+                            <span class="stat-label">Winnings</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number">3</span>
+                            <span class="stat-label">Games</span>
+                        </div>
+                    </div>
+                    <button class="btn-primary btn-large" onclick="showSection('games')">Start Playing</button>
+                </div>
+                <div class="hero-visual">
+                    <div class="spinning-wheel">
+                        <div class="wheel-segments">
+                            <div class="segment red"></div>
+                            <div class="segment yellow"></div>
+                            <div class="segment blue"></div>
+                            <div class="segment red"></div>
+                            <div class="segment blue"></div>
+                            <div class="segment yellow"></div>
+                        </div>
+                        <div class="wheel-center"></div>
+                        <div class="wheel-pointer"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features Section -->
+            <div class="features">
+                <h2 class="section-title">Why Choose SpinX?</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <i class="fas fa-shield-alt"></i>
+                        <h3>Secure & Fair</h3>
+                        <p>Advanced security measures and fair game algorithms</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-bolt"></i>
+                        <h3>Instant Payouts</h3>
+                        <p>Lightning-fast withdrawals to your preferred method</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-users"></i>
+                        <h3>Referral Rewards</h3>
+                        <p>Earn bonuses by inviting friends to join SpinX</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-trophy"></i>
+                        <h3>Leaderboards</h3>
+                        <p>Compete with other players and climb the rankings</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Games Section -->
+        <section id="games" class="section">
+            <div class="container">
+                <h2 class="section-title">Choose Your Game</h2>
+                <div class="games-grid">
+                    <!-- Spin the Wheel -->
+                    <div class="game-card" onclick="openGame('wheel')">
+                        <div class="game-icon">
+                            <div class="mini-wheel">
+                                <div class="mini-segments">
+                                    <div class="mini-segment red"></div>
+                                    <div class="mini-segment yellow"></div>
+                                    <div class="mini-segment blue"></div>
+                                    <div class="mini-segment red"></div>
+                                    <div class="mini-segment blue"></div>
+                                    <div class="mini-segment yellow"></div>
+                                </div>
+                                <div class="mini-center"></div>
+                            </div>
+                        </div>
+                        <h3>Spin the Wheel</h3>
+                        <p>Test your luck with our colorful spinning wheel</p>
+                        <div class="game-multiplier">×10.00</div>
+                    </div>
+
+                    <!-- Dice Roll -->
+                    <div class="game-card" onclick="openGame('dice')">
+                        <div class="game-icon">
+                            <div class="dice-container">
+                                <div class="dice">
+                                    <div class="dice-face">
+                                        <div class="dot"></div>
+                                        <div class="dot"></div>
+                                        <div class="dot"></div>
+                                        <div class="dot"></div>
+                                        <div class="dot"></div>
+                                        <div class="dot"></div>
+                                    </div>
+                                </div>
+                                <div class="dice">
+                                    <div class="dice-face">
+                                        <div class="dot"></div>
+                                        <div class="dot"></div>
+                                        <div class="dot"></div>
+                                        <div class="dot"></div>
+                                        <div class="dot"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <h3>Dice Roll</h3>
+                        <p>Roll the dice and predict the outcome</p>
+                        <div class="game-multiplier">Various</div>
+                    </div>
+
+                    <!-- Mines -->
+                    <div class="game-card" onclick="openGame('mines')">
+                        <div class="game-icon">
+                            <div class="mines-grid">
+                                <div class="mine-cell safe"></div>
+                                <div class="mine-cell bomb"></div>
+                                <div class="mine-cell safe"></div>
+                                <div class="mine-cell safe"></div>
+                                <div class="mine-cell safe"></div>
+                                <div class="mine-cell bomb"></div>
+                                <div class="mine-cell safe"></div>
+                                <div class="mine-cell safe"></div>
+                                <div class="mine-cell safe"></div>
+                            </div>
+                        </div>
+                        <h3>Mines</h3>
+                        <p>Navigate the minefield and collect rewards</p>
+                        <div class="game-multiplier">Up to ×100</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Wallet Section -->
+        <section id="wallet" class="section">
+            <div class="container">
+                <h2 class="section-title">Wallet Management</h2>
+                <div class="wallet-overview">
+                    <div class="balance-card">
+                        <h3>Current Balance</h3>
+                        <div class="balance-amount" id="wallet-balance">₦0.00</div>
+                        <div class="balance-actions">
+                            <button class="btn-primary" onclick="openDepositModal()">Deposit</button>
+                            <button class="btn-secondary" onclick="openWithdrawModal()">Withdraw</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="wallet-tabs">
+                    <button class="tab-btn active" onclick="showWalletTab('transactions')">Transactions</button>
+                    <button class="tab-btn" onclick="showWalletTab('deposit')">Deposit</button>
+                    <button class="tab-btn" onclick="showWalletTab('withdraw')">Withdraw</button>
+                </div>
+
+                <div class="wallet-content">
+                    <!-- Transactions Tab -->
+                    <div id="transactions-tab" class="tab-content active">
+                        <div class="transaction-list" id="transaction-list">
+                            <!-- Transactions will be populated here -->
+                        </div>
+                    </div>
+
+                    <!-- Deposit Tab -->
+                    <div id="deposit-tab" class="tab-content">
+                        <div class="deposit-methods">
+                            <h3>Choose Deposit Method</h3>
+                            <div class="payment-methods">
+                                <div class="payment-method" onclick="selectPaymentMethod('mobile-money')">
+                                    <i class="fas fa-mobile-alt"></i>
+                                    <span>Mobile Money</span>
+                                </div>
+                                <div class="payment-method" onclick="selectPaymentMethod('card')">
+                                    <i class="fas fa-credit-card"></i>
+                                    <span>Debit/Credit Card</span>
+                                </div>
+                                <div class="payment-method" onclick="selectPaymentMethod('crypto')">
+                                    <i class="fab fa-bitcoin"></i>
+                                    <span>Cryptocurrency</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Withdraw Tab -->
+                    <div id="withdraw-tab" class="tab-content">
+                        <div class="withdraw-form">
+                            <h3>Withdraw Funds</h3>
+                            <form id="withdraw-form">
+                                <div class="form-group">
+                                    <label>Amount</label>
+                                    <input type="number" id="withdraw-amount" placeholder="Enter amount" min="1000" required>
+                                    <small>Minimum withdrawal: ₦1,000</small>
+                                </div>
+                                <div class="form-group">
+                                    <label>Withdrawal Method</label>
+                                    <select id="withdraw-method" required>
+                                        <option value="">Select method</option>
+                                        <option value="mobile-money">Mobile Money</option>
+                                        <option value="bank">Bank Transfer</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Account Details</label>
+                                    <input type="text" id="withdraw-account" placeholder="Account number/phone" required>
+                                </div>
+                                <button type="submit" class="btn-primary">Request Withdrawal</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Leaderboard Section -->
+        <section id="leaderboard" class="section">
+            <div class="container">
+                <h2 class="section-title">Leaderboard</h2>
+                <div class="leaderboard-tabs">
+                    <button class="tab-btn active" onclick="showLeaderboardTab('top-players')">Top Players</button>
+                    <button class="tab-btn" onclick="showLeaderboardTab('win-streaks')">Win Streaks</button>
+                    <button class="tab-btn" onclick="showLeaderboardTab('biggest-wins')">Biggest Wins</button>
+                </div>
+
+                <div class="leaderboard-content">
+                    <div id="top-players-tab" class="tab-content active">
+                        <div class="leaderboard-list" id="top-players-list">
+                            <!-- Top players will be populated here -->
+                        </div>
+                    </div>
+
+                    <div id="win-streaks-tab" class="tab-content">
+                        <div class="leaderboard-list" id="win-streaks-list">
+                            <!-- Win streaks will be populated here -->
+                        </div>
+                    </div>
+
+                    <div id="biggest-wins-tab" class="tab-content">
+                        <div class="leaderboard-list" id="biggest-wins-list">
+                            <!-- Biggest wins will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Profile Section -->
+        <section id="profile" class="section">
+            <div class="container">
+                <h2 class="section-title">Profile</h2>
+                <div class="profile-content">
+                    <div class="profile-card">
+                        <div class="profile-header">
+                            <div class="profile-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="profile-info">
+                                <h3 id="profile-username">Guest User</h3>
+                                <p id="profile-email">Not logged in</p>
+                                <div class="verification-status" id="verification-status">
+                                    <span class="status-badge pending">KYC Pending</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="profile-stats">
+                            <div class="stat-item">
+                                <span class="stat-value" id="total-played">0</span>
+                                <span class="stat-label">Games Played</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value" id="total-won">₦0</span>
+                                <span class="stat-label">Total Won</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value" id="current-streak">0</span>
+                                <span class="stat-label">Current Streak</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value" id="referrals-count">0</span>
+                                <span class="stat-label">Referrals</span>
+                            </div>
+                        </div>
+
+                        <div class="profile-actions">
+                            <button class="btn-primary" onclick="openKYCModal()">Complete KYC</button>
+                            <button class="btn-secondary" onclick="openReferralModal()">Refer Friends</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Game Modals -->
+    <div id="game-modal" class="modal">
+        <div class="modal-content game-modal-content">
+            <div class="modal-header">
+                <h3 id="game-title">Game</h3>
+                <button class="close-btn" onclick="closeGameModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="game-content">
+                <!-- Game content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Modals -->
+    <div id="auth-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="auth-title">Login</h3>
+                <button class="close-btn" onclick="closeAuthModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="login-form" class="auth-form">
+                    <form onsubmit="handleLogin(event)">
+                        <div class="form-group">
+                            <input type="email" id="login-email" placeholder="Email or Phone" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="password" id="login-password" placeholder="Password" required>
+                        </div>
+                        <button type="submit" class="btn-primary btn-full">Login</button>
+                    </form>
+                    <p class="auth-switch">Don't have an account? <a href="#" onclick="showRegisterForm()">Register</a></p>
+                </div>
+
+                <div id="register-form" class="auth-form hidden">
+                    <form onsubmit="handleRegister(event)">
+                        <div class="form-group">
+                            <input type="text" id="register-username" placeholder="Username" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="email" id="register-email" placeholder="Email" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="tel" id="register-phone" placeholder="Phone Number" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="password" id="register-password" placeholder="Password" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="password" id="register-confirm" placeholder="Confirm Password" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" id="referral-code" placeholder="Referral Code (Optional)">
+                        </div>
+                        <button type="submit" class="btn-primary btn-full">Register</button>
+                    </form>
+                    <p class="auth-switch">Already have an account? <a href="#" onclick="showLoginForm()">Login</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Other Modals -->
+    <div id="deposit-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Deposit Funds</h3>
+                <button class="close-btn" onclick="closeModal('deposit-modal')">&times;</button>
+            </div>
+            <div class="modal-body" id="deposit-content">
+                <!-- Deposit content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <div id="kyc-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>KYC Verification</h3>
+                <button class="close-btn" onclick="closeModal('kyc-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="kyc-form" onsubmit="handleKYC(event)">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="kyc-fullname" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Date of Birth</label>
+                        <input type="date" id="kyc-dob" required>
+                    </div>
+                    <div class="form-group">
+                        <label>ID Type</label>
+                        <select id="kyc-id-type" required>
+                            <option value="">Select ID Type</option>
+                            <option value="nin">National ID (NIN)</option>
+                            <option value="passport">International Passport</option>
+                            <option value="drivers">Driver's License</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>ID Number</label>
+                        <input type="text" id="kyc-id-number" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Address</label>
+                        <textarea id="kyc-address" required></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary">Submit for Verification</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="referral-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Refer Friends</h3>
+                <button class="close-btn" onclick="closeModal('referral-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="referral-info">
+                    <h4>Your Referral Code</h4>
+                    <div class="referral-code-display">
+                        <code id="user-referral-code">SPINX123</code>
+                        <button class="btn-secondary" onclick="copyReferralCode()">Copy</button>
+                    </div>
+                    <p>Share this code with friends and earn ₦500 for each successful referral!</p>
+                    
+                    <div class="referral-stats">
+                        <div class="stat">
+                            <span class="stat-number" id="referral-count">0</span>
+                            <span class="stat-label">Total Referrals</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number" id="referral-earnings">₦0</span>
+                            <span class="stat-label">Earnings</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast">
+        <div class="toast-content">
+            <i class="toast-icon"></i>
+            <span class="toast-message"></span>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/games.js"></script>
+    <script src="js/wallet.js"></script>
+    <script src="js/utils.js"></script>
+</body>
+</html>

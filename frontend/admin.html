@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpinX Admin Panel</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="admin-body">
+    <!-- Admin Sidebar -->
+    <div class="admin-sidebar">
+        <div class="admin-logo">
+            <img src="img/spinxlogo.png" alt="SpinX Logo" class="logo-img">
+            <span class="logo-text">SpinX Admin</span>
+        </div>
+        
+        <nav class="admin-nav">
+            <ul>
+                <li><a href="#dashboard" class="nav-link active" onclick="showAdminSection('dashboard')">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a></li>
+                <li><a href="#users" class="nav-link" onclick="showAdminSection('users')">
+                    <i class="fas fa-users"></i> Users
+                </a></li>
+                <li><a href="#kyc" class="nav-link" onclick="showAdminSection('kyc')">
+                    <i class="fas fa-id-card"></i> KYC Requests
+                </a></li>
+                <li><a href="#transactions" class="nav-link" onclick="showAdminSection('transactions')">
+                    <i class="fas fa-money-bill-wave"></i> Transactions
+                </a></li>
+                <li><a href="#withdrawals" class="nav-link" onclick="showAdminSection('withdrawals')">
+                    <i class="fas fa-arrow-up"></i> Withdrawals
+                </a></li>
+                <li><a href="#games" class="nav-link" onclick="showAdminSection('games')">
+                    <i class="fas fa-gamepad"></i> Game Settings
+                </a></li>
+                <li><a href="#referrals" class="nav-link" onclick="showAdminSection('referrals')">
+                    <i class="fas fa-share-alt"></i> Referrals
+                </a></li>
+                <li><a href="#analytics" class="nav-link" onclick="showAdminSection('analytics')">
+                    <i class="fas fa-chart-line"></i> Analytics
+                </a></li>
+                <li><a href="#settings" class="nav-link" onclick="showAdminSection('settings')">
+                    <i class="fas fa-cog"></i> Settings
+                </a></li>
+            </ul>
+        </nav>
+
+        <div class="admin-user">
+            <div class="admin-avatar">
+                <i class="fas fa-user-shield"></i>
+            </div>
+            <div class="admin-info">
+                <span class="admin-name">Admin User</span>
+                <button class="btn-logout-admin" onclick="adminLogout()">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Main Content -->
+    <div class="admin-main">
+        <!-- Dashboard Section -->
+        <section id="dashboard-section" class="admin-section active">
+            <div class="admin-header">
+                <h1>Dashboard</h1>
+                <div class="admin-stats-summary">
+                    <div class="stat-card">
+                        <i class="fas fa-users"></i>
+                        <div class="stat-content">
+                            <span class="stat-number" id="total-users">0</span>
+                            <span class="stat-label">Total Users</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <div class="stat-content">
+                            <span class="stat-number" id="total-revenue">₦0</span>
+                            <span class="stat-label">Total Revenue</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-gamepad"></i>
+                        <div class="stat-content">
+                            <span class="stat-number" id="games-played">0</span>
+                            <span class="stat-label">Games Played</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-arrow-up"></i>
+                        <div class="stat-content">
+                            <span class="stat-number" id="pending-withdrawals">0</span>
+                            <span class="stat-label">Pending Withdrawals</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-content">
+                <div class="dashboard-row">
+                    <div class="dashboard-card">
+                        <h3>Recent Activity</h3>
+                        <div class="activity-list" id="recent-activity">
+                            <!-- Recent activities will be populated here -->
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3>Game Statistics</h3>
+                        <div class="game-stats">
+                            <div class="game-stat">
+                                <span class="game-name">Spin the Wheel</span>
+                                <span class="game-plays" id="wheel-plays">0</span>
+                            </div>
+                            <div class="game-stat">
+                                <span class="game-name">Dice Roll</span>
+                                <span class="game-plays" id="dice-plays">0</span>
+                            </div>
+                            <div class="game-stat">
+                                <span class="game-name">Mines</span>
+                                <span class="game-plays" id="mines-plays">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Users Section -->
+        <section id="users-section" class="admin-section">
+            <div class="admin-header">
+                <h1>User Management</h1>
+                <div class="admin-actions">
+                    <input type="text" id="user-search" placeholder="Search users..." class="search-input">
+                    <button class="btn-primary" onclick="exportUsers()">Export Users</button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Balance</th>
+                            <th>KYC Status</th>
+                            <th>Registration Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body">
+                        <!-- Users will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- KYC Requests Section -->
+        <section id="kyc-section" class="admin-section">
+            <div class="admin-header">
+                <h1>KYC Verification Requests</h1>
+                <div class="admin-filters">
+                    <select id="kyc-filter" onchange="filterKYCRequests()">
+                        <option value="all">All Requests</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="kyc-requests-grid" id="kyc-requests-grid">
+                <!-- KYC requests will be populated here -->
+            </div>
+        </section>
+
+        <!-- Transactions Section -->
+        <section id="transactions-section" class="admin-section">
+            <div class="admin-header">
+                <h1>Transaction History</h1>
+                <div class="admin-filters">
+                    <select id="transaction-type-filter" onchange="filterTransactions()">
+                        <option value="all">All Types</option>
+                        <option value="deposit">Deposits</option>
+                        <option value="withdrawal">Withdrawals</option>
+                        <option value="game">Game Transactions</option>
+                        <option value="referral">Referral Bonuses</option>
+                    </select>
+                    <input type="date" id="transaction-date-from" onchange="filterTransactions()">
+                    <input type="date" id="transaction-date-to" onchange="filterTransactions()">
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>User</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Reference</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactions-table-body">
+                        <!-- Transactions will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Withdrawals Section -->
+        <section id="withdrawals-section" class="admin-section">
+            <div class="admin-header">
+                <h1>Withdrawal Requests</h1>
+                <div class="admin-filters">
+                    <select id="withdrawal-status-filter" onchange="filterWithdrawals()">
+                        <option value="all">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>User</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Account Details</th>
+                            <th>Status</th>
+                            <th>Request Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="withdrawals-table-body">
+                        <!-- Withdrawals will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Game Settings Section -->
+        <section id="games-section" class="admin-section">
+            <div class="admin-header">
+                <h1>Game Configuration</h1>
+            </div>
+
+            <div class="game-settings-grid">
+                <!-- Spin the Wheel Settings -->
+                <div class="game-setting-card">
+                    <h3>Spin the Wheel</h3>
+                    <form id="wheel-settings-form" onsubmit="updateGameSettings(event, 'wheel')">
+                        <div class="form-group">
+                            <label>House Edge (%)</label>
+                            <input type="number" id="wheel-house-edge" value="5" min="0" max="50" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Min Bet Amount</label>
+                            <input type="number" id="wheel-min-bet" value="10" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Max Bet Amount</label>
+                            <input type="number" id="wheel-max-bet" value="100000" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Red Multiplier</label>
+                            <input type="number" id="wheel-red-multiplier" value="2" min="1" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Yellow Multiplier</label>
+                            <input type="number" id="wheel-yellow-multiplier" value="5" min="1" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Blue Multiplier</label>
+                            <input type="number" id="wheel-blue-multiplier" value="10" min="1" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="wheel-enabled" checked> Game Enabled
+                            </label>
+                        </div>
+                        <button type="submit" class="btn-primary">Update Settings</button>
+                    </form>
+                </div>
+
+                <!-- Dice Roll Settings -->
+                <div class="game-setting-card">
+                    <h3>Dice Roll</h3>
+                    <form id="dice-settings-form" onsubmit="updateGameSettings(event, 'dice')">
+                        <div class="form-group">
+                            <label>House Edge (%)</label>
+                            <input type="number" id="dice-house-edge" value="5" min="0" max="50" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Min Bet Amount</label>
+                            <input type="number" id="dice-min-bet" value="10" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Max Bet Amount</label>
+                            <input type="number" id="dice-max-bet" value="100000" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Even/Odd Multiplier</label>
+                            <input type="number" id="dice-even-odd-multiplier" value="2" min="1" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Specific Number Multiplier</label>
+                            <input type="number" id="dice-specific-multiplier" value="6" min="1" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="dice-enabled" checked> Game Enabled
+                            </label>
+                        </div>
+                        <button type="submit" class="btn-primary">Update Settings</button>
+                    </form>
+                </div>
+
+                <!-- Mines Settings -->
+                <div class="game-setting-card">
+                    <h3>Mines</h3>
+                    <form id="mines-settings-form" onsubmit="updateGameSettings(event, 'mines')">
+                        <div class="form-group">
+                            <label>House Edge (%)</label>
+                            <input type="number" id="mines-house-edge" value="5" min="0" max="50" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Min Bet Amount</label>
+                            <input type="number" id="mines-min-bet" value="10" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Max Bet Amount</label>
+                            <input type="number" id="mines-max-bet" value="100000" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Grid Size</label>
+                            <select id="mines-grid-size">
+                                <option value="5">5x5</option>
+                                <option value="6">6x6</option>
+                                <option value="7">7x7</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Max Mines</label>
+                            <input type="number" id="mines-max-mines" value="12" min="1" max="20">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="mines-enabled" checked> Game Enabled
+                            </label>
+                        </div>
+                        <button type="submit" class="btn-primary">Update Settings</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- Referrals Section -->
+        <section id="referrals-section" class="admin-section">
+            <div class="admin-header">
+                <h1>Referral System</h1>
+                <div class="admin-actions">
+                    <button class="btn-primary" onclick="exportReferrals()">Export Data</button>
+                </div>
+            </div>
+
+            <div class="referral-settings">
+                <div class="setting-card">
+                    <h3>Referral Configuration</h3>
+                    <form id="referral-settings-form" onsubmit="updateReferralSettings(event)">
+                        <div class="form-group">
+                            <label>Bonus Amount per Referral</label>
+                            <input type="number" id="referral-bonus" value="500" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Max Referrals per User</label>
+                            <input type="number" id="max-referrals" value="100" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Minimum Deposit to Activate Referral</label>
+                            <input type="number" id="referral-min-deposit" value="1000" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="referral-enabled" checked> Referral System Enabled
+                            </label>
+                        </div>
+                        <button type="submit" class="btn-primary">Update Settings</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Referrer</th>
+                            <th>Referred User</th>
+                            <th>Bonus Amount</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="referrals-table-body">
+                        <!-- Referrals will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Analytics Section -->
+        <section id="analytics-section" class="admin-section">
+            <div class="admin-header">
+                <h1>Analytics & Reports</h1>
+                <div class="admin-actions">
+                    <select id="analytics-period" onchange="updateAnalytics()">
+                        <option value="7">Last 7 Days</option>
+                        <option value="30">Last 30 Days</option>
+                        <option value="90">Last 90 Days</option>
+                        <option value="365">Last Year</option>
+                    </select>
+                    <button class="btn-primary" onclick="exportAnalytics()">Export Report</button>
+                </div>
+            </div>
+
+            <div class="analytics-content">
+                <div class="analytics-row">
+                    <div class="analytics-card">
+                        <h3>Revenue Overview</h3>
+                        <div class="revenue-stats">
+                            <div class="revenue-item">
+                                <span class="revenue-label">Deposits</span>
+                                <span class="revenue-amount" id="analytics-deposits">₦0</span>
+                            </div>
+                            <div class="revenue-item">
+                                <span class="revenue-label">Withdrawals</span>
+                                <span class="revenue-amount" id="analytics-withdrawals">₦0</span>
+                            </div>
+                            <div class="revenue-item">
+                                <span class="revenue-label">House Edge</span>
+                                <span class="revenue-amount" id="analytics-house-edge">₦0</span>
+                            </div>
+                            <div class="revenue-item">
+                                <span class="revenue-label">Transaction Fees</span>
+                                <span class="revenue-amount" id="analytics-fees">₦0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="analytics-card">
+                        <h3>User Activity</h3>
+                        <div class="activity-stats">
+                            <div class="activity-item">
+                                <span class="activity-label">New Registrations</span>
+                                <span class="activity-count" id="analytics-new-users">0</span>
+                            </div>
+                            <div class="activity-item">
+                                <span class="activity-label">Active Users</span>
+                                <span class="activity-count" id="analytics-active-users">0</span>
+                            </div>
+                            <div class="activity-item">
+                                <span class="activity-label">Verified Users</span>
+                                <span class="activity-count" id="analytics-verified-users">0</span>
+                            </div>
+                            <div class="activity-item">
+                                <span class="activity-label">Total Games Played</span>
+                                <span class="activity-count" id="analytics-total-games">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Section -->
+        <section id="settings-section" class="admin-section">
+            <div class="admin-header">
+                <h1>System Settings</h1>
+            </div>
+
+            <div class="settings-content">
+                <div class="settings-row">
+                    <div class="setting-card">
+                        <h3>General Settings</h3>
+                        <form id="general-settings-form" onsubmit="updateGeneralSettings(event)">
+                            <div class="form-group">
+                                <label>Platform Name</label>
+                                <input type="text" id="platform-name" value="SpinX">
+                            </div>
+                            <div class="form-group">
+                                <label>Support Email</label>
+                                <input type="email" id="support-email" value="support@spinx.com">
+                            </div>
+                            <div class="form-group">
+                                <label>Minimum Withdrawal Amount</label>
+                                <input type="number" id="min-withdrawal" value="1000" min="1">
+                            </div>
+                            <div class="form-group">
+                                <label>Transaction Fee (%)</label>
+                                <input type="number" id="transaction-fee" value="3" min="0" max="10" step="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="maintenance-mode"> Maintenance Mode
+                                </label>
+                            </div>
+                            <button type="submit" class="btn-primary">Update Settings</button>
+                        </form>
+                    </div>
+
+                    <div class="setting-card">
+                        <h3>Security Settings</h3>
+                        <form id="security-settings-form" onsubmit="updateSecuritySettings(event)">
+                            <div class="form-group">
+                                <label>Session Timeout (minutes)</label>
+                                <input type="number" id="session-timeout" value="30" min="5">
+                            </div>
+                            <div class="form-group">
+                                <label>Max Login Attempts</label>
+                                <input type="number" id="max-login-attempts" value="5" min="3">
+                            </div>
+                            <div class="form-group">
+                                <label>Account Lockout Duration (minutes)</label>
+                                <input type="number" id="lockout-duration" value="15" min="5">
+                            </div>
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="require-kyc" checked> Require KYC for Withdrawals
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="two-factor-auth"> Enable 2FA
+                                </label>
+                            </div>
+                            <button type="submit" class="btn-primary">Update Settings</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Admin Modals -->
+    <div id="user-details-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>User Details</h3>
+                <button class="close-btn" onclick="closeModal('user-details-modal')">&times;</button>
+            </div>
+            <div class="modal-body" id="user-details-content">
+                <!-- User details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <div id="kyc-review-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>KYC Review</h3>
+                <button class="close-btn" onclick="closeModal('kyc-review-modal')">&times;</button>
+            </div>
+            <div class="modal-body" id="kyc-review-content">
+                <!-- KYC review content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="admin-toast" class="toast">
+        <div class="toast-content">
+            <i class="toast-icon"></i>
+            <span class="toast-message"></span>
+        </div>
+    </div>
+
+    <script src="js/admin.js"></script>
+    <script src="js/utils.js"></script>
+</body>
+</html>
