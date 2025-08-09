@@ -78,7 +78,7 @@ class AdminManager {
         const password = document.getElementById('admin-password').value;
         
         // Demo credentials - in production, use proper authentication
-        if (username === 'admin' && password === 'admin123') {
+        if (username === 'kekeli@admin' && password === 'admin123') {
             this.adminUser = {
                 id: 'admin_1',
                 username: 'admin',
