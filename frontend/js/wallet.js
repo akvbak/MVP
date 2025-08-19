@@ -204,6 +204,7 @@ class WalletManager {
 
     getDepositFormHTML(method) {
         const methodData = this.depositMethods[method];
+        const sym = window.app.getCurrencySymbol();
         
         return `
             <div class="deposit-form">
@@ -219,7 +220,7 @@ class WalletManager {
                         <label>Amount</label>
                         <input type="number" id="deposit-amount" placeholder="Enter amount" 
                                min="${methodData.minAmount}" max="${methodData.maxAmount}" required>
-                        <small>Min: ₦${methodData.minAmount.toLocaleString()} - Max: ₦${methodData.maxAmount.toLocaleString()}</small>
+                        <small>Min: ${sym}${methodData.minAmount.toLocaleString()} - Max: ${sym}${methodData.maxAmount.toLocaleString()}</small>
                     </div>
 
                     ${this.getMethodSpecificFields(method)}
@@ -227,19 +228,19 @@ class WalletManager {
                     <div class="deposit-summary" id="deposit-summary">
                         <div class="summary-row">
                             <span>Amount:</span>
-                            <span id="summary-amount">₦0</span>
+                            <span id="summary-amount">${sym}0</span>
                         </div>
                         <div class="summary-row">
                             <span>Fee (${(methodData.fee * 100).toFixed(1)}%):</span>
-                            <span id="summary-fee">₦0</span>
+                            <span id="summary-fee">${sym}0</span>
                         </div>
                         <div class="summary-row total">
                             <span>Total to Pay:</span>
-                            <span id="summary-total">₦0</span>
+                            <span id="summary-total">${sym}0</span>
                         </div>
                         <div class="summary-row">
                             <span>You will receive:</span>
-                            <span id="summary-receive">₦0</span>
+                            <span id="summary-receive">${sym}0</span>
                         </div>
                     </div>
 
@@ -393,18 +394,19 @@ class WalletManager {
         const total = amount - fee;
         
         const summaryDiv = document.getElementById('withdrawal-summary');
+        const sym = window.app.getCurrencySymbol();
         summaryDiv.innerHTML = `
             <div class="summary-row">
                 <span>Withdrawal Amount:</span>
-                <span>₦${amount.toLocaleString()}</span>
+                <span>${sym}${amount.toLocaleString()}</span>
             </div>
             <div class="summary-row">
                 <span>Fee (${(methodData.fee * 100).toFixed(1)}%):</span>
-                <span>-₦${fee.toLocaleString()}</span>
+                <span>-${sym}${fee.toLocaleString()}</span>
             </div>
             <div class="summary-row total">
                 <span>You will receive:</span>
-                <span>₦${total.toLocaleString()}</span>
+                <span>${sym}${total.toLocaleString()}</span>
             </div>
         `;
         summaryDiv.style.display = 'block';
@@ -413,16 +415,17 @@ class WalletManager {
     async processDeposit(event, method) {
         event.preventDefault();
         
-        const amount = parseFloat(document.getElementById('deposit-amount').value);
+        const amountDisplay = parseFloat(document.getElementById('deposit-amount').value);
         const methodData = this.depositMethods[method];
         
-        if (amount < methodData.minAmount || amount > methodData.maxAmount) {
-            window.app.showToast(`Amount must be between ₦${methodData.minAmount.toLocaleString()} and ₦${methodData.maxAmount.toLocaleString()}`, 'error');
+        if (amountDisplay < methodData.minAmount || amountDisplay > methodData.maxAmount) {
+            window.app.showToast(`Amount must be between ${window.app.getCurrencySymbol()}${methodData.minAmount.toLocaleString()} and ${window.app.getCurrencySymbol()}${methodData.maxAmount.toLocaleString()}`, 'error');
             return;
         }
         
-        const fee = amount * methodData.fee;
-        const totalToPay = amount + fee;
+        const fee = amountDisplay * methodData.fee;
+        const totalToPay = amountDisplay + fee;
+        const amount = window.app.convertToBase(amountDisplay);
         
         // Validate method-specific fields
         if (!this.validateDepositForm(method)) {
@@ -453,7 +456,7 @@ class WalletManager {
                     window.authManager.processReferral(window.app.currentUser.id, amount);
                 }
                 
-                window.app.showToast(`Deposit successful! ₦${amount.toLocaleString()} added to your account`, 'success');
+                window.app.showToast(`Deposit successful! ${window.app.formatCurrency(amount)} added to your account`, 'success');
                 window.app.closeModal('deposit-modal');
                 
                 // Reset form
@@ -475,7 +478,7 @@ class WalletManager {
                     return false;
                 }
                 
-                if (!phone || !/^[0-9]{11}$/.test(phone.replace(/\s/g, ''))) {
+                if (!phone || !/^\+?\d{9,15}$/.test(phone.replace(/\s/g, ''))) {
                     window.app.showToast('Please enter a valid phone number', 'error');
                     return false;
                 }
@@ -487,7 +490,7 @@ class WalletManager {
                 const cvv = document.getElementById('card-cvv').value;
                 const name = document.getElementById('card-name').value;
                 
-                if (!cardNumber || !/^[0-9\s]{13,19}$/.test(cardNumber)) {
+                if (!cardNumber || !/^[0-9\s]{13,19}$/.test(cardNumber) || !luhnCheck(cardNumber)) {
                     window.app.showToast('Please enter a valid card number', 'error');
                     return false;
                 }
@@ -525,7 +528,7 @@ class WalletManager {
         event.preventDefault();
         
         const method = document.getElementById('withdrawal-method').value;
-        const amount = parseFloat(document.getElementById('withdrawal-amount').value);
+        const amountDisplay = parseFloat(document.getElementById('withdrawal-amount').value);
         const user = window.app.currentUser;
         
         if (!method) {
@@ -535,11 +538,12 @@ class WalletManager {
         
         const methodData = this.withdrawalMethods[method];
         
-        if (amount < methodData.minAmount) {
-            window.app.showToast(`Minimum withdrawal amount is ₦${methodData.minAmount.toLocaleString()}`, 'error');
+        if (amountDisplay < methodData.minAmount) {
+            window.app.showToast(`Minimum withdrawal amount is ${window.app.getCurrencySymbol()}${methodData.minAmount.toLocaleString()}`, 'error');
             return;
         }
         
+        const amount = window.app.convertToBase(amountDisplay);
         if (amount > user.balance) {
             window.app.showToast('Insufficient balance', 'error');
             return;
@@ -550,8 +554,8 @@ class WalletManager {
             return;
         }
         
-        const fee = amount * methodData.fee;
-        const finalAmount = amount - fee;
+        const fee = amountDisplay * methodData.fee;
+        const finalAmountDisplay = amountDisplay - fee;
         
         // Create withdrawal request
         const withdrawal = {
@@ -560,8 +564,8 @@ class WalletManager {
             username: user.username,
             method: methodData.name,
             amount: amount,
-            fee: fee,
-            finalAmount: finalAmount,
+            fee: window.app.convertToBase(fee),
+            finalAmount: window.app.convertToBase(finalAmountDisplay),
             accountDetails: this.getWithdrawalAccountDetails(method),
             status: 'pending',
             date: new Date().toISOString(),
@@ -725,10 +729,11 @@ function updateDepositSummary() {
     const fee = amount * methodData.fee;
     const total = amount + fee;
     
-    document.getElementById('summary-amount').textContent = `₦${amount.toLocaleString()}`;
-    document.getElementById('summary-fee').textContent = `₦${fee.toLocaleString()}`;
-    document.getElementById('summary-total').textContent = `₦${total.toLocaleString()}`;
-    document.getElementById('summary-receive').textContent = `₦${amount.toLocaleString()}`;
+    const sym = window.app.getCurrencySymbol();
+    document.getElementById('summary-amount').textContent = `${sym}${amount.toLocaleString()}`;
+    document.getElementById('summary-fee').textContent = `${sym}${fee.toLocaleString()}`;
+    document.getElementById('summary-total').textContent = `${sym}${total.toLocaleString()}`;
+    document.getElementById('summary-receive').textContent = `${sym}${amount.toLocaleString()}`;
 }
 
 // Format card number input
@@ -756,6 +761,23 @@ document.addEventListener('input', (e) => {
         e.target.value = value;
     }
 });
+
+// Luhn algorithm for card validation
+function luhnCheck(number) {
+    const value = (number || '').replace(/\s+/g, '');
+    let sum = 0;
+    let shouldDouble = false;
+    for (let i = value.length - 1; i >= 0; i--) {
+        let digit = parseInt(value.charAt(i), 10);
+        if (shouldDouble) {
+            digit *= 2;
+            if (digit > 9) digit -= 9;
+        }
+        sum += digit;
+        shouldDouble = !shouldDouble;
+    }
+    return sum % 10 === 0;
+}
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {

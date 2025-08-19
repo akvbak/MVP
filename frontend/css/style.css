@@ -203,6 +203,15 @@ h1, h2, h3, h4, h5, h6 {
     gap: 1rem;
 }
 
+.currency-select {
+    background: var(--card-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-weight: 600;
+}
+
 .balance-display {
     display: flex;
     align-items: center;

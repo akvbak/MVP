@@ -39,14 +39,18 @@ class AdminManager {
     }
 
     checkAdminAuth() {
-        // Simple admin auth - in production, use proper authentication
         const adminData = localStorage.getItem('spinx_admin_user');
         if (adminData) {
-            this.adminUser = JSON.parse(adminData);
-            this.isAdminAuthenticated = true;
-        } else {
-            this.showAdminLogin();
+            try {
+                const parsed = JSON.parse(adminData);
+                if (parsed && parsed.username) {
+                    this.adminUser = parsed;
+                    this.isAdminAuthenticated = true;
+                    return;
+                }
+            } catch (_) {}
         }
+        this.showAdminLogin();
     }
 
     showAdminLogin() {
@@ -77,8 +81,8 @@ class AdminManager {
         const username = document.getElementById('admin-username').value;
         const password = document.getElementById('admin-password').value;
         
-        // Demo credentials - in production, use proper authentication
-        if (username === 'kekeli@admin' && password === 'admin123') {
+        // Demo credentials - normalize username
+        if (username.trim().toLowerCase() === 'admin' && password === 'admin123') {
             this.adminUser = {
                 id: 'admin_1',
                 username: 'admin',
@@ -90,7 +94,8 @@ class AdminManager {
             this.isAdminAuthenticated = true;
             
             // Remove login overlay
-            document.querySelector('.admin-login-overlay').remove();
+            const overlay = document.querySelector('.admin-login-overlay');
+            if (overlay) overlay.remove();
             
             // Initialize admin panel
             this.updateDashboard();
@@ -899,8 +904,11 @@ class AdminManager {
     }
 
     adminLogout() {
-        localStorage.removeItem('spinx_admin_user');
-        location.reload();
+        try { localStorage.removeItem('spinx_admin_user'); } catch (_) {}
+        this.isAdminAuthenticated = false;
+        this.adminUser = null;
+        this.showAdminLogin();
+        this.showToast('Logged out', 'success');
     }
 }
 

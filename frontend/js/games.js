@@ -77,6 +77,7 @@ class GameManager {
     }
 
     getWheelHTML() {
+        const sym = window.app.getCurrencySymbol();
         return `
             <div class="game-container wheel-game">
                 <div class="game-info">
@@ -106,15 +107,15 @@ class GameManager {
                     <div class="bet-controls">
                         <label>Bet Amount</label>
                         <div class="bet-input-group">
-                            <button class="btn-bet-adjust" onclick="gameManager.adjustBet('wheel', -10)">-₦10</button>
+                            <button class="btn-bet-adjust" onclick="gameManager.adjustBet('wheel', -10)">-${sym}10</button>
                             <input type="number" id="wheel-bet" value="100" min="10" max="100000" step="10">
-                            <button class="btn-bet-adjust" onclick="gameManager.adjustBet('wheel', 10)">+₦10</button>
+                            <button class="btn-bet-adjust" onclick="gameManager.adjustBet('wheel', 10)">+${sym}10</button>
                         </div>
                         <div class="quick-bets">
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('wheel', 50)">₦50</button>
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('wheel', 100)">₦100</button>
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('wheel', 500)">₦500</button>
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('wheel', 1000)">₦1K</button>
+                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('wheel', 50)">${sym}50</button>
+                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('wheel', 100)">${sym}100</button>
+                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('wheel', 500)">${sym}500</button>
+                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('wheel', 1000)">${sym}1000</button>
                         </div>
                     </div>
 
@@ -147,6 +148,7 @@ class GameManager {
     }
 
     getDiceHTML() {
+        const sym = window.app.getCurrencySymbol();
         return `
             <div class="game-container dice-game">
                 <div class="game-info">
@@ -172,15 +174,15 @@ class GameManager {
                     <div class="bet-controls">
                         <label>Bet Amount</label>
                         <div class="bet-input-group">
-                            <button class="btn-bet-adjust" onclick="gameManager.adjustBet('dice', -10)">-₦10</button>
+                            <button class="btn-bet-adjust" onclick="gameManager.adjustBet('dice', -10)">-${sym}10</button>
                             <input type="number" id="dice-bet" value="100" min="10" max="100000" step="10">
-                            <button class="btn-bet-adjust" onclick="gameManager.adjustBet('dice', 10)">+₦10</button>
+                            <button class="btn-bet-adjust" onclick="gameManager.adjustBet('dice', 10)">+${sym}10</button>
                         </div>
                         <div class="quick-bets">
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('dice', 50)">₦50</button>
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('dice', 100)">₦100</button>
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('dice', 500)">₦500</button>
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('dice', 1000)">₦1K</button>
+                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('dice', 50)">${sym}50</button>
+                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('dice', 100)">${sym}100</button>
+                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('dice', 500)">${sym}500</button>
+                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('dice', 1000)">${sym}1000</button>
                         </div>
                     </div>
 
@@ -217,6 +219,7 @@ class GameManager {
     }
 
     getMinesHTML() {
+        const sym = window.app.getCurrencySymbol();
         return `
             <div class="game-container mines-game">
                 <div class="game-info">
@@ -237,15 +240,15 @@ class GameManager {
                     <div class="bet-controls">
                         <label>Bet Amount</label>
                         <div class="bet-input-group">
-                            <button class="btn-bet-adjust" onclick="gameManager.adjustBet('mines', -10)">-₦10</button>
+                            <button class="btn-bet-adjust" onclick="gameManager.adjustBet('mines', -10)">-${sym}10</button>
                             <input type="number" id="mines-bet" value="100" min="10" max="100000" step="10">
-                            <button class="btn-bet-adjust" onclick="gameManager.adjustBet('mines', 10)">+₦10</button>
+                            <button class="btn-bet-adjust" onclick="gameManager.adjustBet('mines', 10)">+${sym}10</button>
                         </div>
                         <div class="quick-bets">
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('mines', 50)">₦50</button>
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('mines', 100)">₦100</button>
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('mines', 500)">₦500</button>
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('mines', 1000)">₦1K</button>
+                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('mines', 50)">${sym}50</button>
+                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('mines', 100)">${sym}100</button>
+                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('mines', 500)">${sym}500</button>
+                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('mines', 1000)">${sym}1000</button>
                         </div>
                     </div>
 
@@ -325,9 +328,9 @@ class GameManager {
 
     updateWheelPlayButton() {
         const playBtn = document.getElementById('wheel-play-btn');
-        const betAmount = parseInt(document.getElementById('wheel-bet').value);
-        
-        if (this.gameState.selectedColor && betAmount > 0 && betAmount <= window.app.currentUser.balance) {
+        const betDisplay = parseInt(document.getElementById('wheel-bet').value);
+        const betBase = window.app.convertToBase(betDisplay);
+        if (this.gameState.selectedColor && betBase > 0 && betBase <= (window.app.currentUser.balance || 0)) {
             playBtn.disabled = false;
         } else {
             playBtn.disabled = true;
@@ -337,8 +340,9 @@ class GameManager {
     async playWheel() {
         if (this.isPlaying || !this.gameState.selectedColor) return;
 
-        const betAmount = parseInt(document.getElementById('wheel-bet').value);
-        if (betAmount > window.app.currentUser.balance) {
+        const betDisplay = parseInt(document.getElementById('wheel-bet').value);
+        const betAmount = window.app.convertToBase(betDisplay);
+        if (betAmount > (window.app.currentUser.balance || 0)) {
             window.app.showToast('Insufficient balance', 'error');
             return;
         }
@@ -478,9 +482,9 @@ class GameManager {
 
     updateDicePlayButton() {
         const playBtn = document.getElementById('dice-play-btn');
-        const betAmount = parseInt(document.getElementById('dice-bet').value);
-        
-        if (this.gameState.prediction && betAmount > 0 && betAmount <= window.app.currentUser.balance) {
+        const betDisplay = parseInt(document.getElementById('dice-bet').value);
+        const betBase = window.app.convertToBase(betDisplay);
+        if (this.gameState.prediction && betBase > 0 && betBase <= (window.app.currentUser.balance || 0)) {
             playBtn.disabled = false;
         } else {
             playBtn.disabled = true;
@@ -490,8 +494,9 @@ class GameManager {
     async playDice() {
         if (this.isPlaying || !this.gameState.prediction) return;
 
-        const betAmount = parseInt(document.getElementById('dice-bet').value);
-        if (betAmount > window.app.currentUser.balance) {
+        const betDisplay = parseInt(document.getElementById('dice-bet').value);
+        const betAmount = window.app.convertToBase(betDisplay);
+        if (betAmount > (window.app.currentUser.balance || 0)) {
             window.app.showToast('Insufficient balance', 'error');
             return;
         }
@@ -671,8 +676,9 @@ class GameManager {
     }
 
     startMines() {
-        const betAmount = parseInt(document.getElementById('mines-bet').value);
-        if (betAmount > window.app.currentUser.balance) {
+        const betDisplay = parseInt(document.getElementById('mines-bet').value);
+        const betAmount = window.app.convertToBase(betDisplay);
+        if (betAmount > (window.app.currentUser.balance || 0)) {
             window.app.showToast('Insufficient balance', 'error');
             return;
         }

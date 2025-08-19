@@ -4,6 +4,11 @@ class SpinXApp {
         this.currentUser = null;
         this.currentSection = 'home';
         this.isAuthenticated = false;
+        // Currency management (store in NGN internally; display can switch)
+        this.selectedCurrency = localStorage.getItem('spinx_currency') || 'GHS';
+        // Approximate NGN per unit of currency
+        this.currencyRatesNGN = { NGN: 1, GHS: 106, USD: 1600 };
+        this.currencyLocales = { NGN: 'en-NG', GHS: 'en-GH', USD: 'en-US' };
         this.gameSettings = {
             wheel: {
                 houseEdge: 5,
@@ -73,6 +78,17 @@ class SpinXApp {
         if (hamburger && navMenu) {
             hamburger.addEventListener('click', () => {
                 navMenu.classList.toggle('active');
+            });
+        }
+
+        // Currency selector
+        const currencySelect = document.getElementById('currency-select');
+        if (currencySelect) {
+            currencySelect.value = this.selectedCurrency;
+            currencySelect.addEventListener('change', () => {
+                this.selectedCurrency = currencySelect.value;
+                localStorage.setItem('spinx_currency', this.selectedCurrency);
+                this.updateUI();
             });
         }
 
@@ -147,6 +163,12 @@ class SpinXApp {
 
         this.currentSection = sectionName;
         this.updateSectionContent(sectionName);
+
+        // Close mobile nav if open
+        const navMenu = document.getElementById('nav-menu');
+        if (navMenu && navMenu.classList.contains('active')) {
+            navMenu.classList.remove('active');
+        }
     }
 
     updateSectionContent(sectionName) {
@@ -259,15 +281,36 @@ class SpinXApp {
     }
 
     formatCurrency(amount) {
-        return new Intl.NumberFormat('en-NG', {
+        const locale = this.currencyLocales[this.selectedCurrency] || 'en-NG';
+        const symbolCurrency = this.selectedCurrency;
+        const displayAmount = this.convertFromBase(amount);
+        return new Intl.NumberFormat(locale, {
             style: 'currency',
-            currency: 'NGN',
+            currency: symbolCurrency,
             minimumFractionDigits: 2
-        }).format(amount);
+        }).format(displayAmount);
     }
 
     formatNumber(number) {
-        return new Intl.NumberFormat('en-NG').format(number);
+        const locale = this.currencyLocales[this.selectedCurrency] || 'en-NG';
+        return new Intl.NumberFormat(locale).format(number);
+    }
+
+    getCurrencySymbol() {
+        const symbols = { NGN: '₦', GHS: '₵', USD: '$' };
+        return symbols[this.selectedCurrency] || '₦';
+    }
+
+    // Convert from base (NGN) to display currency
+    convertFromBase(amountNGN) {
+        const rate = this.currencyRatesNGN[this.selectedCurrency] || 1;
+        return (amountNGN || 0) / rate;
+    }
+
+    // Convert from display currency to base (NGN)
+    convertToBase(amountDisplay) {
+        const rate = this.currencyRatesNGN[this.selectedCurrency] || 1;
+        return Math.round((amountDisplay || 0) * rate);
     }
 
     showToast(message, type = 'info', duration = 3000) {
