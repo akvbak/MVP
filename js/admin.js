@@ -67,7 +67,7 @@ class AdminManager {
                         </div>
                         <button type="submit" class="btn-primary">Login</button>
                     </form>
-                    <p class="demo-credentials">Demo: admin / admin123</p>
+                    <p class="demo-credentials">Demo: admin@kekeli / admin123</p>
                 </div>
             </div>
         `;
