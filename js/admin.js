@@ -904,11 +904,12 @@ class AdminManager {
     }
 
     adminLogout() {
-        try { localStorage.removeItem('spinx_admin_user'); } catch (_) {}
-        this.isAdminAuthenticated = false;
-        this.adminUser = null;
-        this.showAdminLogin();
-        this.showToast('Logged out', 'success');
+    try { localStorage.removeItem('spinx_admin_user'); } catch (_) {}
+    this.isAdminAuthenticated = false;
+    this.adminUser = null;
+    this.hideAdminPanel();
+    this.showAdminLogin();
+    this.showToast('Logged out', 'success');
     }
 }
 

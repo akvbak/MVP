@@ -9,13 +9,31 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="admin-body">
+    <!-- Admin Login Modal -->
+    <div id="admin-login-modal" class="modal" style="display:flex;">
+        <div class="modal-content" style="max-width:350px;">
+            <h2>Admin Login</h2>
+            <form id="admin-login-form">
+                <div class="form-group">
+                    <label for="admin-username">Username</label>
+                    <input type="text" id="admin-username" required>
+                </div>
+                <div class="form-group">
+                    <label for="admin-password">Password</label>
+                    <input type="password" id="admin-password" required>
+                </div>
+                <button type="submit" class="btn-primary" style="width:100%;">Login</button>
+            </form>
+            <div id="admin-login-error" style="color:red; margin-top:10px; display:none;"></div>
+        </div>
+    </div>
+
     <!-- Admin Sidebar -->
-    <div class="admin-sidebar">
+    <div class="admin-sidebar" style="display:none;">
         <div class="admin-logo">
             <img src="img/spinxlogo.png" alt="SpinX Logo" class="logo-img">
             <span class="logo-text">SpinX Admin</span>
         </div>
-        
         <nav class="admin-nav">
             <ul>
                 <li><a href="#dashboard" class="nav-link active" onclick="showAdminSection('dashboard')">
@@ -47,20 +65,19 @@
                 </a></li>
             </ul>
         </nav>
-
         <div class="admin-user">
             <div class="admin-avatar">
                 <i class="fas fa-user-shield"></i>
             </div>
             <div class="admin-info">
                 <span class="admin-name">Admin User</span>
-                <button class="btn-logout-admin" onclick="adminLogout()">Logout</button>
+                <button class="btn-logout-admin" id="admin-logout-btn">Logout</button>
             </div>
         </div>
     </div>
 
     <!-- Admin Main Content -->
-    <div class="admin-main">
+    <div class="admin-main" style="display:none;">
         <!-- Dashboard Section -->
         <section id="dashboard-section" class="admin-section active">
             <div class="admin-header">
@@ -77,58 +94,76 @@
                         <i class="fas fa-money-bill-wave"></i>
                         <div class="stat-content">
                             <span class="stat-number" id="total-revenue">₦0</span>
-                            <span class="stat-label">Total Revenue</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <i class="fas fa-gamepad"></i>
-                        <div class="stat-content">
-                            <span class="stat-number" id="games-played">0</span>
-                            <span class="stat-label">Games Played</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <i class="fas fa-arrow-up"></i>
-                        <div class="stat-content">
-                            <span class="stat-number" id="pending-withdrawals">0</span>
-                            <span class="stat-label">Pending Withdrawals</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                            <!-- Admin Login Overlay (will be injected by JS if not authenticated) -->
+                            <!-- Admin Sidebar (hidden until authenticated) -->
+                            <div class="admin-sidebar" style="display:none;">
+                                <!-- ...existing code... -->
+                                <div class="admin-main" style="display:none;">
+                                    <img src="img/spinxlogo.png" alt="SpinX Logo" class="logo-img">
+                                    <span class="logo-text">SpinX Admin</span>
+                                </div>
+                                <nav class="admin-nav">
+                                    <ul>
+                                        <li><a href="#dashboard" class="nav-link active" onclick="showAdminSection('dashboard')">
+                                            <button class="btn-logout-admin" id="admin-logout-btn">Logout</button>
+                                        </a></li>
+                                        <li><a href="#users" class="nav-link" onclick="showAdminSection('users')">
+                                            <i class="fas fa-users"></i> Users
+                                        </a></li>
+                                <!-- Admin Login Modal -->
+                                <div id="admin-login-modal" class="modal" style="display:flex;">
+                                    <div class="modal-content" style="max-width:350px;">
+                                        <h2>Admin Login</h2>
+                                        <form id="admin-login-form">
+                                            <div class="form-group">
+                                                <label for="admin-username">Username</label>
+                                                <input type="text" id="admin-username" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="admin-password">Password</label>
+                                                <input type="password" id="admin-password" required>
+                                            </div>
+                                            <button type="submit" class="btn-primary" style="width:100%;">Login</button>
+                                        </form>
+                                        <div id="admin-login-error" style="color:red; margin-top:10px; display:none;"></div>
+                                    </div>
+                                </div>
+                                        <li><a href="#kyc" class="nav-link" onclick="showAdminSection('kyc')">
+                                            <i class="fas fa-id-card"></i> KYC Requests
+                                        </a></li>
+                                        <li><a href="#transactions" class="nav-link" onclick="showAdminSection('transactions')">
+                                            <i class="fas fa-money-bill-wave"></i> Transactions
+                                        </a></li>
+                                        <li><a href="#withdrawals" class="nav-link" onclick="showAdminSection('withdrawals')">
+                                            <i class="fas fa-arrow-up"></i> Withdrawals
+                                        </a></li>
+                                        <li><a href="#games" class="nav-link" onclick="showAdminSection('games')">
+                                            <i class="fas fa-gamepad"></i> Game Settings
+                                        </a></li>
+                                        <li><a href="#referrals" class="nav-link" onclick="showAdminSection('referrals')">
+                                            <i class="fas fa-share-alt"></i> Referrals
+                                        </a></li>
+                                        <li><a href="#analytics" class="nav-link" onclick="showAdminSection('analytics')">
+                                            <i class="fas fa-chart-line"></i> Analytics
+                                        </a></li>
+                                        <li><a href="#settings" class="nav-link" onclick="showAdminSection('settings')">
+                                            <i class="fas fa-cog"></i> Settings
+                                        </a></li>
+                                    </ul>
+                                </nav>
+                                <div class="admin-user">
+                                    <div class="admin-avatar">
+                                        <i class="fas fa-user-shield"></i>
+                                    </div>
+                                    <div class="admin-info">
+                                        <span class="admin-name">Admin User</span>
+                                        <button class="btn-logout-admin" id="admin-logout-btn">Logout</button>
+                                    </div>
+                                </div>
+                            </div>
 
-            <div class="dashboard-content">
-                <div class="dashboard-row">
-                    <div class="dashboard-card">
-                        <h3>Recent Activity</h3>
-                        <div class="activity-list" id="recent-activity">
-                            <!-- Recent activities will be populated here -->
-                        </div>
-                    </div>
-                    <div class="dashboard-card">
-                        <h3>Game Statistics</h3>
-                        <div class="game-stats">
-                            <div class="game-stat">
-                                <span class="game-name">Spin the Wheel</span>
-                                <span class="game-plays" id="wheel-plays">0</span>
-                            </div>
-                            <div class="game-stat">
-                                <span class="game-name">Dice Roll</span>
-                                <span class="game-plays" id="dice-plays">0</span>
-                            </div>
-                            <div class="game-stat">
-                                <span class="game-name">Mines</span>
-                                <span class="game-plays" id="mines-plays">0</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Users Section -->
-        <section id="users-section" class="admin-section">
-            <div class="admin-header">
+                            <!-- Admin Main Content (hidden until authenticated) -->
+                            <div class="admin-main" style="display:none;">
                 <h1>User Management</h1>
                 <div class="admin-actions">
                     <input type="text" id="user-search" placeholder="Search users..." class="search-input">
@@ -587,5 +622,75 @@
 
     <script src="js/admin.js"></script>
     <script src="js/utils.js"></script>
+    <script>
+    let adminSessionTimeout;
+    function showAdminLogin() {
+        document.getElementById('admin-login-modal').style.display = 'flex';
+        document.querySelector('.admin-sidebar').style.display = 'none';
+        document.querySelector('.admin-main').style.display = 'none';
+    }
+    function hideAdminLogin() {
+        document.getElementById('admin-login-modal').style.display = 'none';
+        document.querySelector('.admin-sidebar').style.display = '';
+        document.querySelector('.admin-main').style.display = '';
+    }
+    function adminLogout() {
+        showAdminLogin();
+        clearTimeout(adminSessionTimeout);
+        sessionStorage.removeItem('adminAuthenticated');
+    }
+    function resetSessionTimeout() {
+        clearTimeout(adminSessionTimeout);
+        adminSessionTimeout = setTimeout(() => {
+            adminLogout();
+            alert('Session expired. Please log in again.');
+        }, 15 * 60 * 1000);
+    }
+    document.addEventListener('mousemove', resetSessionTimeout);
+    document.addEventListener('keydown', resetSessionTimeout);
+
+    document.getElementById('admin-login-form').onsubmit = function(e) {
+        e.preventDefault();
+        const username = document.getElementById('admin-username').value.trim().toLowerCase();
+        const password = document.getElementById('admin-password').value;
+        if (username === 'admin@kekeli' && password === 'admin123') {
+            sessionStorage.setItem('adminAuthenticated', 'true');
+            hideAdminLogin();
+            resetSessionTimeout();
+            document.getElementById('admin-login-error').style.display = 'none';
+            // Clear credentials
+            document.getElementById('admin-username').value = '';
+            document.getElementById('admin-password').value = '';
+        } else {
+            document.getElementById('admin-login-error').textContent = 'Invalid credentials';
+            document.getElementById('admin-login-error').style.display = 'block';
+        }
+    };
+    // Delegated event listener for logout button
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.id === 'admin-logout-btn') {
+            adminLogout();
+        }
+    });
+    window.onload = function() {
+        if (sessionStorage.getItem('adminAuthenticated') === 'true') {
+            hideAdminLogin();
+            resetSessionTimeout();
+        } else {
+            showAdminLogin();
+        }
+    };
+    </script>
+    <script>
+    // Fix logout button to always work
+    document.addEventListener('DOMContentLoaded', function() {
+        var btn = document.getElementById('admin-logout-btn');
+        if (btn) {
+            btn.onclick = function() {
+                if (window.adminManager) window.adminManager.adminLogout();
+            };
+        }
+    });
+    </script>
 </body>
 </html>
