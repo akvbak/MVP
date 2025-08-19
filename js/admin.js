@@ -82,10 +82,10 @@ class AdminManager {
         const password = document.getElementById('admin-password').value;
         
         // Demo credentials - normalize username
-        if (username.trim().toLowerCase() === '@admin.kekeli' && password === 'admin123') {
+        if (username.trim().toLowerCase() === 'admin@kekeli' && password === 'admin123') {
             this.adminUser = {
                 id: 'admin_1',
-                username: '@admin.kekeli',
+                username: 'admin@kekeli',
                 role: 'super_admin',
                 lastLogin: new Date().toISOString()
             };
