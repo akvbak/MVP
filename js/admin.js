@@ -12,8 +12,15 @@ class AdminManager {
         this.checkAdminAuth();
         this.setupEventListeners();
         this.updateDashboard();
+        this.startLiveUpdates();
     }
 
+    startLiveUpdates() {
+        // Poll every 5 seconds for live updates
+        this.liveUpdateInterval = setInterval(() => {
+            this.loadSectionData(this.currentSection);
+        }, 5000);
+    }
     loadSettings() {
         const settings = localStorage.getItem('spinx_admin_settings');
         return settings ? JSON.parse(settings) : {
