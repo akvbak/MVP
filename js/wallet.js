@@ -6,21 +6,21 @@ class WalletManager {
             'mobile-money': {
                 name: 'Mobile Money',
                 providers: ['MTN', 'Airtel', 'Glo', '9mobile'],
-                fee: 0.03,
+                fee: 0,
                 minAmount: 100,
                 maxAmount: 500000
             },
             'card': {
                 name: 'Debit/Credit Card',
                 providers: ['Visa', 'Mastercard', 'Verve'],
-                fee: 0.035,
+                fee: 0,
                 minAmount: 100,
                 maxAmount: 1000000
             },
             'crypto': {
                 name: 'Cryptocurrency',
                 providers: ['Bitcoin', 'USDT', 'Ethereum'],
-                fee: 0.025,
+                fee: 0,
                 minAmount: 1000,
                 maxAmount: 10000000
             }
@@ -28,14 +28,14 @@ class WalletManager {
         this.withdrawalMethods = {
             'mobile-money': {
                 name: 'Mobile Money',
-                fee: 0.03,
+                fee: 0.01,
                 minAmount: 1000,
                 maxAmount: 500000,
                 processingTime: '5-10 minutes'
             },
             'bank': {
                 name: 'Bank Transfer',
-                fee: 0.05,
+                fee: 0.01,
                 minAmount: 2000,
                 maxAmount: 1000000,
                 processingTime: '1-3 business days'
@@ -70,8 +70,19 @@ class WalletManager {
         content.innerHTML = this.getWithdrawHTML();
         modal.classList.add('active');
         modal.style.display = 'flex';
+            setTimeout(() => this.bindWithdrawalEvents(), 100);
     }
 
+        bindWithdrawalEvents() {
+            const amountInput = document.getElementById('withdrawal-amount');
+            const methodSelect = document.getElementById('withdrawal-method');
+            if (amountInput) {
+                amountInput.addEventListener('input', () => this.updateWithdrawalSummary());
+            }
+            if (methodSelect) {
+                methodSelect.addEventListener('change', () => this.updateWithdrawalSummary());
+            }
+        }
     getDepositHTML() {
         return `
             <div class="deposit-container">
@@ -383,17 +394,15 @@ class WalletManager {
     updateWithdrawalSummary() {
         const method = document.getElementById('withdrawal-method').value;
         const amount = parseFloat(document.getElementById('withdrawal-amount').value) || 0;
-        
+        const summaryDiv = document.getElementById('withdrawal-summary');
         if (!method || amount <= 0) {
-            document.getElementById('withdrawal-summary').style.display = 'none';
+            summaryDiv.style.display = 'none';
+            summaryDiv.innerHTML = '';
             return;
         }
-        
         const methodData = this.withdrawalMethods[method];
         const fee = amount * methodData.fee;
         const total = amount - fee;
-        
-        const summaryDiv = document.getElementById('withdrawal-summary');
         const sym = window.app.getCurrencySymbol();
         summaryDiv.innerHTML = `
             <div class="summary-row">
@@ -405,7 +414,7 @@ class WalletManager {
                 <span>-${sym}${fee.toLocaleString()}</span>
             </div>
             <div class="summary-row total">
-                <span>You will receive:</span>
+                <span>Total to be received:</span>
                 <span>${sym}${total.toLocaleString()}</span>
             </div>
         `;
@@ -423,9 +432,9 @@ class WalletManager {
             return;
         }
         
-        const fee = amountDisplay * methodData.fee;
-        const totalToPay = amountDisplay + fee;
-        const amount = window.app.convertToBase(amountDisplay);
+    const fee = 0;
+    const totalToPay = amountDisplay;
+    const amount = window.app.convertToBase(amountDisplay);
         
         // Validate method-specific fields
         if (!this.validateDepositForm(method)) {
