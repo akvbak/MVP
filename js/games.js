@@ -1,587 +1,310 @@
 // SpinX Games Manager
+
+// SpinX New Games Manager (Coin Toss, Dice Roll, Lucky Number)
 class GameManager {
     constructor() {
         this.currentGame = null;
         this.gameState = {};
         this.isPlaying = false;
         this.betAmount = 0;
+        this.winningsFeed = [];
         this.gameSettings = {
-            wheel: {
-                segments: [
-                    { color: 'red', multiplier: 2, probability: 0.4 },
-                    { color: 'yellow', multiplier: 5, probability: 0.3 },
-                    { color: 'blue', multiplier: 10, probability: 0.3 }
-                ],
-                houseEdge: 0.05
+            coin: {
+                houseEdge: 0.02,
+                minBet: 10,
+                maxBet: 100000
             },
             dice: {
                 houseEdge: 0.05,
-                payouts: {
-                    even: 2,
-                    odd: 2,
-                    specific: 6
-                }
+                minBet: 10,
+                maxBet: 100000,
+                payouts: { even: 2, odd: 2, specific: 6 }
             },
-            mines: {
-                gridSize: 5,
-                houseEdge: 0.05,
-                maxMines: 12
+            lucky: {
+                houseEdge: 0.08,
+                minBet: 10,
+                maxBet: 100000
             }
         };
     }
 
-    openGame(gameType) {
-        if (!window.app.isAuthenticated) {
-            window.app.showToast('Please login to play', 'warning');
-            return;
+    updateGameBalanceDisplay() {
+        // Always re-read the latest user from localStorage
+        const userData = localStorage.getItem('spinx_user');
+        if (userData) {
+            window.app.currentUser = JSON.parse(userData);
         }
+        const container = document.getElementById('game-iframe-container');
+        if (!container) return;
+        const balanceDiv = container.querySelector('.balance-display');
+        if (balanceDiv) {
+            balanceDiv.textContent = `Balance: ${window.app.formatCurrency(window.app.currentUser.balance)}`;
+        }
+    }
 
+    openGame(gameType) {
         this.currentGame = gameType;
         this.gameState = {};
         this.isPlaying = false;
-
-        const modal = document.getElementById('game-modal');
-        const title = document.getElementById('game-title');
-        const content = document.getElementById('game-content');
-
-        // Set title
-        const titles = {
-            wheel: 'Spin the Wheel',
-            dice: 'Dice Roll',
-            mines: 'Mines'
-        };
-        title.textContent = titles[gameType] || 'Game';
-
-        // Load game content
-        content.innerHTML = this.getGameHTML(gameType);
-
-        // Show modal
-        modal.classList.add('active');
-        modal.style.display = 'flex';
-
-        // Initialize game-specific logic
-        this.initializeGame(gameType);
+        const container = document.getElementById('game-iframe-container');
+        if (!container) return;
+        container.innerHTML = this.getGameHTML(gameType);
+        this.highlightSidebar(gameType);
     }
 
     getGameHTML(gameType) {
         switch (gameType) {
-            case 'wheel':
-                return this.getWheelHTML();
+            case 'coin':
+                return this.getCoinTossHTML();
             case 'dice':
-                return this.getDiceHTML();
-            case 'mines':
-                return this.getMinesHTML();
+                return this.getDiceRollHTML();
+            case 'lucky':
+                return this.getLuckyNumberHTML();
             default:
-                return '<p>Game not found</p>';
+                return '<div class="game-placeholder"><h2>Choose a game to play!</h2><p>Select a game from the sidebar to get started.</p></div>';
         }
     }
 
-    getWheelHTML() {
+    // --- Coin Toss UI & Logic ---
+    getCoinTossHTML() {
         const sym = window.app.getCurrencySymbol();
         return `
-            <div class="game-container wheel-game">
-                <div class="game-info">
-                    <div class="balance-display">
-                        <span>Balance: ${window.app.formatCurrency(window.app.currentUser.balance)}</span>
+            <div class="game-container coin-game modern-coin-game">
+                <div class="coin-game-header">
+                    <h2><i class="fas fa-coins"></i> Coin Toss</h2>
+                    <div class="balance-display">Balance: ${window.app.formatCurrency(window.app.currentUser.balance)}</div>
+                    </div>
+                <div class="coin-game-body">
+                    <div class="coin-anim-area">
+                        <div class="coin-anim" id="coin-anim">
+                            <div class="coin-face coin-heads">Heads</div>
+                            <div class="coin-face coin-tails">Tails</div>
                     </div>
                 </div>
-                
-                <div class="wheel-container">
-                    <div class="wheel" id="game-wheel">
-                        <div class="wheel-segments">
-                            <div class="segment red" data-color="red" data-multiplier="2"></div>
-                            <div class="segment yellow" data-color="yellow" data-multiplier="5"></div>
-                            <div class="segment blue" data-color="blue" data-multiplier="10"></div>
-                            <div class="segment red" data-color="red" data-multiplier="2"></div>
-                            <div class="segment blue" data-color="blue" data-multiplier="10"></div>
-                            <div class="segment yellow" data-color="yellow" data-multiplier="5"></div>
-                        </div>
-                        <div class="wheel-center">
-                            <i class="fas fa-play"></i>
-                        </div>
-                        <div class="wheel-pointer"></div>
-                    </div>
-                </div>
-
-                <div class="game-controls">
-                    <div class="bet-controls">
+                    <div class="coin-controls">
+                        <div class="bet-group">
                         <label>Bet Amount</label>
-                        <div class="bet-input-group">
-                            <button class="btn-bet-adjust" onclick="gameManager.adjustBet('wheel', -10)">-${sym}10</button>
-                            <input type="number" id="wheel-bet" value="100" min="10" max="100000" step="10">
-                            <button class="btn-bet-adjust" onclick="gameManager.adjustBet('wheel', 10)">+${sym}10</button>
+                            <input type="number" id="coin-bet" value="100" min="10" max="100000" step="10">
                         </div>
-                        <div class="quick-bets">
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('wheel', 50)">${sym}50</button>
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('wheel', 100)">${sym}100</button>
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('wheel', 500)">${sym}500</button>
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('wheel', 1000)">${sym}1000</button>
-                        </div>
-                    </div>
-
-                    <div class="color-selection">
-                        <h4>Choose Color</h4>
-                        <div class="color-buttons">
-                            <button class="color-btn red" data-color="red" onclick="gameManager.selectColor('red')">
-                                <span class="multiplier">×2</span>
-                                <span class="color-name">Red</span>
+                        <div class="choice-group">
+                            <label>Choose</label>
+                            <div class="coin-choice-btns">
+                                <button class="coin-btn" data-choice="heads" onclick="gameManager.selectCoin('heads')">
+                                    <span class="coin-icon">🪙</span> Heads
                             </button>
-                            <button class="color-btn yellow" data-color="yellow" onclick="gameManager.selectColor('yellow')">
-                                <span class="multiplier">×5</span>
-                                <span class="color-name">Yellow</span>
-                            </button>
-                            <button class="color-btn blue" data-color="blue" onclick="gameManager.selectColor('blue')">
-                                <span class="multiplier">×10</span>
-                                <span class="color-name">Blue</span>
+                                <button class="coin-btn" data-choice="tails" onclick="gameManager.selectCoin('tails')">
+                                    <span class="coin-icon">🪙</span> Tails
                             </button>
                         </div>
                     </div>
-
-                    <button class="btn-play" id="wheel-play-btn" onclick="gameManager.playWheel()" disabled>
-                        <i class="fas fa-play"></i> Spin the Wheel
-                    </button>
-                </div>
-
-                <div class="game-result" id="wheel-result" style="display: none;"></div>
-            </div>
-        `;
-    }
-
-    getDiceHTML() {
-        const sym = window.app.getCurrencySymbol();
-        return `
-            <div class="game-container dice-game">
-                <div class="game-info">
-                    <div class="balance-display">
-                        <span>Balance: ${window.app.formatCurrency(window.app.currentUser.balance)}</span>
-                    </div>
-                </div>
-
-                <div class="dice-container">
-                    <div class="dice" id="dice1">
-                        <div class="dice-face">
-                            <div class="dot"></div>
-                        </div>
-                    </div>
-                    <div class="dice" id="dice2">
-                        <div class="dice-face">
-                            <div class="dot"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="game-controls">
-                    <div class="bet-controls">
-                        <label>Bet Amount</label>
-                        <div class="bet-input-group">
-                            <button class="btn-bet-adjust" onclick="gameManager.adjustBet('dice', -10)">-${sym}10</button>
-                            <input type="number" id="dice-bet" value="100" min="10" max="100000" step="10">
-                            <button class="btn-bet-adjust" onclick="gameManager.adjustBet('dice', 10)">+${sym}10</button>
-                        </div>
-                        <div class="quick-bets">
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('dice', 50)">${sym}50</button>
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('dice', 100)">${sym}100</button>
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('dice', 500)">${sym}500</button>
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('dice', 1000)">${sym}1000</button>
-                        </div>
-                    </div>
-
-                    <div class="prediction-selection">
-                        <h4>Your Prediction</h4>
-                        <div class="prediction-buttons">
-                            <button class="prediction-btn" data-type="even" onclick="gameManager.selectPrediction('even')">
-                                <span class="multiplier">×2</span>
-                                <span class="prediction-name">Even Sum</span>
-                            </button>
-                            <button class="prediction-btn" data-type="odd" onclick="gameManager.selectPrediction('odd')">
-                                <span class="multiplier">×2</span>
-                                <span class="prediction-name">Odd Sum</span>
-                            </button>
-                        </div>
-                        <div class="specific-numbers">
-                            <h5>Specific Sum (×6)</h5>
-                            <div class="number-buttons">
-                                ${Array.from({length: 11}, (_, i) => i + 2).map(num => 
-                                    `<button class="number-btn" data-number="${num}" onclick="gameManager.selectNumber(${num})">${num}</button>`
-                                ).join('')}
-                            </div>
-                        </div>
-                    </div>
-
-                    <button class="btn-play" id="dice-play-btn" onclick="gameManager.playDice()" disabled>
-                        <i class="fas fa-dice"></i> Roll Dice
-                    </button>
-                </div>
-
-                <div class="game-result" id="dice-result" style="display: none;"></div>
-            </div>
-        `;
-    }
-
-    getMinesHTML() {
-        const sym = window.app.getCurrencySymbol();
-        return `
-            <div class="game-container mines-game">
-                <div class="game-info">
-                    <div class="balance-display">
-                        <span>Balance: ${window.app.formatCurrency(window.app.currentUser.balance)}</span>
-                    </div>
-                    <div class="mines-info">
-                        <span>Mines: <span id="mines-count">3</span></span>
-                        <span>Current Multiplier: <span id="current-multiplier">×1.00</span></span>
-                    </div>
-                </div>
-
-                <div class="mines-grid" id="mines-grid">
-                    <!-- Grid will be generated by JavaScript -->
-                </div>
-
-                <div class="game-controls">
-                    <div class="bet-controls">
-                        <label>Bet Amount</label>
-                        <div class="bet-input-group">
-                            <button class="btn-bet-adjust" onclick="gameManager.adjustBet('mines', -10)">-${sym}10</button>
-                            <input type="number" id="mines-bet" value="100" min="10" max="100000" step="10">
-                            <button class="btn-bet-adjust" onclick="gameManager.adjustBet('mines', 10)">+${sym}10</button>
-                        </div>
-                        <div class="quick-bets">
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('mines', 50)">${sym}50</button>
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('mines', 100)">${sym}100</button>
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('mines', 500)">${sym}500</button>
-                            <button class="btn-quick-bet" onclick="gameManager.setQuickBet('mines', 1000)">${sym}1000</button>
-                        </div>
-                    </div>
-
-                    <div class="mines-controls">
-                        <label>Number of Mines</label>
-                        <div class="mines-selector">
-                            <input type="range" id="mines-slider" min="1" max="12" value="3" onchange="gameManager.updateMinesCount()">
-                        </div>
-                    </div>
-
-                    <div class="action-buttons">
-                        <button class="btn-play" id="mines-start-btn" onclick="gameManager.startMines()">
-                            <i class="fas fa-play"></i> Start Game
-                        </button>
-                        <button class="btn-cashout" id="mines-cashout-btn" onclick="gameManager.cashoutMines()" style="display: none;">
-                            <i class="fas fa-money-bill-wave"></i> Cash Out
+                        <button class="btn-play big-play-btn" id="coin-play-btn" onclick="gameManager.playCoinToss()" disabled>
+                            <i class="fas fa-play"></i> Flip Coin
                         </button>
                     </div>
                 </div>
-
-                <div class="game-result" id="mines-result" style="display: none;"></div>
+                <div class="game-result" id="coin-result" style="display:none;"></div>
             </div>
         `;
     }
-
-    initializeGame(gameType) {
-        switch (gameType) {
-            case 'wheel':
-                this.initializeWheel();
-                break;
-            case 'dice':
-                this.initializeDice();
-                break;
-            case 'mines':
-                this.initializeMines();
-                break;
-        }
-    }
-
-    initializeWheel() {
-        this.gameState.selectedColor = null;
-        this.updateWheelPlayButton();
-    }
-
-    initializeDice() {
-        this.gameState.prediction = null;
-        this.updateDicePlayButton();
-    }
-
-    initializeMines() {
-        this.gameState = {
-            grid: [],
-            mines: [],
-            revealed: [],
-            gameStarted: false,
-            multiplier: 1.0,
-            safeCells: 0
-        };
-        this.generateMinesGrid();
-        this.updateMinesCount();
-    }
-
-    // Wheel Game Logic
-    selectColor(color) {
+    selectCoin(choice) {
         if (this.isPlaying) return;
-
-        // Remove previous selections
-        document.querySelectorAll('.color-btn').forEach(btn => {
-            btn.classList.remove('selected');
-        });
-
-        // Select new color
-        document.querySelector(`.color-btn[data-color="${color}"]`).classList.add('selected');
-        this.gameState.selectedColor = color;
-        this.updateWheelPlayButton();
+        document.querySelectorAll('.coin-btn').forEach(btn => btn.classList.remove('selected'));
+        const btn = document.querySelector(`.coin-btn[data-choice="${choice}"]`);
+        if (btn) btn.classList.add('selected');
+        this.gameState.choice = choice.toLowerCase();
+        this.updateCoinPlayButton();
     }
-
-    updateWheelPlayButton() {
-        const playBtn = document.getElementById('wheel-play-btn');
-        const betDisplay = parseInt(document.getElementById('wheel-bet').value);
-        const betBase = window.app.convertToBase(betDisplay);
-        if (this.gameState.selectedColor && betBase > 0 && betBase <= (window.app.currentUser.balance || 0)) {
+    updateCoinPlayButton() {
+        const playBtn = document.getElementById('coin-play-btn');
+        const bet = parseInt(document.getElementById('coin-bet').value);
+        const betBase = window.app.convertToBase(bet);
+        if (this.gameState.choice && betBase > 0 && betBase <= (window.app.currentUser.balance || 0)) {
             playBtn.disabled = false;
         } else {
             playBtn.disabled = true;
         }
     }
-
-    async playWheel() {
-        if (this.isPlaying || !this.gameState.selectedColor) return;
-
-        const betDisplay = parseInt(document.getElementById('wheel-bet').value);
-        const betAmount = window.app.convertToBase(betDisplay);
-        if (betAmount > (window.app.currentUser.balance || 0)) {
+    playCoinToss() {
+        if (this.isPlaying || !this.gameState.choice) return;
+        const bet = parseInt(document.getElementById('coin-bet').value);
+        const betBase = window.app.convertToBase(bet);
+        if (betBase > (window.app.currentUser.balance || 0)) {
             window.app.showToast('Insufficient balance', 'error');
             return;
         }
-
         this.isPlaying = true;
-        this.betAmount = betAmount;
-
-        // Deduct bet amount
+        this.betAmount = betBase;
         window.authManager.updateUserBalance(
             window.app.currentUser.id,
-            -betAmount,
+            -betBase,
             'game',
-            'Wheel game bet',
-            `WHEEL_${Date.now()}`
+            'Coin Toss bet',
+            `COIN_${Date.now()}`
         );
-
-        // Disable controls
-        document.getElementById('wheel-play-btn').disabled = true;
-        document.querySelectorAll('.color-btn').forEach(btn => btn.disabled = true);
-
-        // Spin the wheel
-        const result = this.spinWheel();
-        
-        // Show spinning animation
-        const wheel = document.getElementById('game-wheel');
-        wheel.classList.add('animate-wheel-spin');
-
-        // Wait for animation
+    window.app.updateUI(); // Ensure balance updates
+    this.updateGameBalanceDisplay();
+        // Animate coin flip
+        const coinAnim = document.getElementById('coin-anim');
+        const headsFace = coinAnim ? coinAnim.querySelector('.coin-heads') : null;
+        const tailsFace = coinAnim ? coinAnim.querySelector('.coin-tails') : null;
+        if (coinAnim && headsFace && tailsFace) {
+            coinAnim.classList.remove('flip-heads', 'flip-tails');
+            headsFace.style.opacity = '1';
+            tailsFace.style.opacity = '1';
+            void coinAnim.offsetWidth;
+        }
+        // Simulate coin flip
+        const result = Math.random() < 0.5 ? 'heads' : 'tails';
+        if (coinAnim) {
+            coinAnim.classList.add(result === 'heads' ? 'flip-heads' : 'flip-tails');
+        }
         setTimeout(() => {
-            this.processWheelResult(result);
-            wheel.classList.remove('animate-wheel-spin');
+            if (headsFace && tailsFace) {
+                headsFace.style.opacity = result === 'heads' ? '1' : '0';
+                tailsFace.style.opacity = result === 'tails' ? '1' : '0';
+            }
+            this.processCoinResult(result);
             this.isPlaying = false;
-            
-            // Re-enable controls
-            document.querySelectorAll('.color-btn').forEach(btn => btn.disabled = false);
-            this.updateWheelPlayButton();
-        }, 3000);
+            this.updateCoinPlayButton();
+        }, 1600);
     }
-
-    spinWheel() {
-        // Simple random generation with house edge
-        const random = Math.random();
-        const houseEdge = this.gameSettings.wheel.houseEdge;
-        
-        // Adjust probabilities for house edge
-        if (random < 0.4 + houseEdge) return { color: 'red', multiplier: 2 };
-        if (random < 0.7 + houseEdge) return { color: 'yellow', multiplier: 5 };
-        return { color: 'blue', multiplier: 10 };
-    }
-
-    processWheelResult(result) {
-        const isWin = result.color === this.gameState.selectedColor;
-        const resultDiv = document.getElementById('wheel-result');
-        
+    processCoinResult(result) {
+        const isWin = result === this.gameState.choice;
+        const resultDiv = document.getElementById('coin-result');
+        const displayResult = result.charAt(0).toUpperCase() + result.slice(1);
         if (isWin) {
-            const winAmount = this.betAmount * result.multiplier;
-            
-            // Add winnings
+            const winAmount = Math.floor(this.betAmount * 2 * (1 - this.gameSettings.coin.houseEdge));
             window.authManager.updateUserBalance(
                 window.app.currentUser.id,
                 winAmount,
                 'game',
-                `Wheel game win (${result.color})`,
-                `WHEEL_WIN_${Date.now()}`
+                `Coin Toss win (${displayResult})`,
+                `COIN_WIN_${Date.now()}`
             );
-
-            // Update streak
-            const newStreak = (window.app.currentUser.currentStreak || 0) + 1;
-            window.authManager.updateUserStats(window.app.currentUser.id, {
-                currentStreak: newStreak,
-                longestStreak: Math.max(newStreak, window.app.currentUser.longestStreak || 0),
-                gamesPlayed: (window.app.currentUser.gamesPlayed || 0) + 1
-            });
-
-            resultDiv.innerHTML = `
-                <div class="win-result">
-                    <h3>🎉 You Won!</h3>
-                    <p>The wheel landed on <span class="color-${result.color}">${result.color}</span></p>
-                    <p class="win-amount">+${window.app.formatCurrency(winAmount)}</p>
-                </div>
-            `;
+            window.app.updateUI();
+            this.updateGameBalanceDisplay();
+            this.addWinningsFeed('Coin Toss', winAmount);
+            resultDiv.innerHTML = `<div class='win-result'><h3>🎉 You Won!</h3><p>Coin landed on <b>${displayResult}</b></p><p class='win-amount'>+${window.app.formatCurrency(winAmount)}</p></div>`;
             resultDiv.className = 'game-result win';
             window.app.showToast(`You won ${window.app.formatCurrency(winAmount)}!`, 'success');
         } else {
-            // Update stats for loss
-            window.authManager.updateUserStats(window.app.currentUser.id, {
-                currentStreak: 0,
-                gamesPlayed: (window.app.currentUser.gamesPlayed || 0) + 1
-            });
-
-            resultDiv.innerHTML = `
-                <div class="lose-result">
-                    <h3>😔 Better luck next time!</h3>
-                    <p>The wheel landed on <span class="color-${result.color}">${result.color}</span></p>
-                    <p>You selected <span class="color-${this.gameState.selectedColor}">${this.gameState.selectedColor}</span></p>
-                </div>
-            `;
+            resultDiv.innerHTML = `<div class='lose-result'><h3>😔 Lost!</h3><p>Coin landed on <b>${displayResult}</b></p></div>`;
             resultDiv.className = 'game-result lose';
+            window.app.showToast(`You lost ${window.app.formatCurrency(this.betAmount)}.`, 'error');
         }
-
         resultDiv.style.display = 'block';
-
-        // Hide result after 5 seconds
         setTimeout(() => {
+            this.gameState.choice = null;
+            document.querySelectorAll('.coin-btn.selected').forEach(btn => btn.classList.remove('selected'));
+            this.isPlaying = false;
+            this.updateCoinPlayButton();
             resultDiv.style.display = 'none';
-        }, 5000);
+        }, 2500);
     }
 
-    // Dice Game Logic
-    selectPrediction(type) {
+    // --- Dice Roll UI & Logic ---
+    getDiceRollHTML() {
+        const sym = window.app.getCurrencySymbol();
+        return `
+            <div class="game-container modern-dice-game">
+                <div class="dice-game-header">
+                    <h2><i class="fas fa-dice"></i> Dice Roll</h2>
+                </div>
+                <div class="dice-game-body">
+                    <div class="dice-anim-area">
+                        <div class="dice-anim" id="dice-anim">
+                            <div class="dice-cube" id="dice1-cube">🎲</div>
+                            <div class="dice-cube" id="dice2-cube">🎲</div>
+                        </div>
+                    </div>
+                    <div class="dice-controls">
+                        <div class="bet-group">
+                            <label>Bet Amount</label>
+                            <input type="number" id="dice-bet" value="100" min="10" max="100000" step="10">
+                        </div>
+                        <div class="choice-group">
+                            <label>Predict</label>
+                            <div class="dice-choice-btns">
+                                <button class="dice-btn" data-pred="even" onclick="gameManager.selectDice('even')">Even</button>
+                                <button class="dice-btn" data-pred="odd" onclick="gameManager.selectDice('odd')">Odd</button>
+                            </div>
+                        </div>
+                        <button class="btn-play big-play-btn" id="dice-play-btn" onclick="gameManager.playDiceRoll()" disabled>
+                            <i class="fas fa-dice"></i> Roll Dice
+                        </button>
+                    </div>
+                </div>
+                <div class="game-result" id="dice-result" style="display:none;"></div>
+            </div>
+        `;
+    }
+    selectDice(prediction) {
         if (this.isPlaying) return;
-
-        // Clear previous selections
-        document.querySelectorAll('.prediction-btn, .number-btn').forEach(btn => {
-            btn.classList.remove('selected');
-        });
-
-        // Select prediction
-        document.querySelector(`.prediction-btn[data-type="${type}"]`).classList.add('selected');
-        this.gameState.prediction = { type, value: type };
+        document.querySelectorAll('.dice-btn').forEach(btn => btn.classList.remove('selected'));
+        const btn = document.querySelector(`.dice-btn[data-pred="${prediction}"]`);
+        if (btn) btn.classList.add('selected');
+        this.gameState.prediction = { type: prediction };
         this.updateDicePlayButton();
     }
-
-    selectNumber(number) {
-        if (this.isPlaying) return;
-
-        // Clear previous selections
-        document.querySelectorAll('.prediction-btn, .number-btn').forEach(btn => {
-            btn.classList.remove('selected');
-        });
-
-        // Select number
-        document.querySelector(`.number-btn[data-number="${number}"]`).classList.add('selected');
-        this.gameState.prediction = { type: 'specific', value: number };
-        this.updateDicePlayButton();
-    }
-
     updateDicePlayButton() {
         const playBtn = document.getElementById('dice-play-btn');
-        const betDisplay = parseInt(document.getElementById('dice-bet').value);
-        const betBase = window.app.convertToBase(betDisplay);
+        const bet = parseInt(document.getElementById('dice-bet').value);
+        const betBase = window.app.convertToBase(bet);
         if (this.gameState.prediction && betBase > 0 && betBase <= (window.app.currentUser.balance || 0)) {
             playBtn.disabled = false;
         } else {
             playBtn.disabled = true;
         }
     }
-
-    async playDice() {
+    playDiceRoll() {
         if (this.isPlaying || !this.gameState.prediction) return;
-
-        const betDisplay = parseInt(document.getElementById('dice-bet').value);
-        const betAmount = window.app.convertToBase(betDisplay);
-        if (betAmount > (window.app.currentUser.balance || 0)) {
+        const bet = parseInt(document.getElementById('dice-bet').value);
+        const betBase = window.app.convertToBase(bet);
+        if (betBase > (window.app.currentUser.balance || 0)) {
             window.app.showToast('Insufficient balance', 'error');
             return;
         }
-
         this.isPlaying = true;
-        this.betAmount = betAmount;
-
-        // Deduct bet amount
+        this.betAmount = betBase;
         window.authManager.updateUserBalance(
             window.app.currentUser.id,
-            -betAmount,
+            -betBase,
             'game',
-            'Dice game bet',
+            'Dice Roll bet',
             `DICE_${Date.now()}`
         );
-
-        // Disable controls
-        document.getElementById('dice-play-btn').disabled = true;
-
-        // Roll dice
-        const result = this.rollDice();
-        
-        // Show rolling animation
-        document.getElementById('dice1').classList.add('animate-roll-dice');
-        document.getElementById('dice2').classList.add('animate-roll-dice');
-
-        // Wait for animation
-        setTimeout(() => {
-            this.updateDiceDisplay(result.dice1, result.dice2);
-            this.processDiceResult(result);
-            
-            document.getElementById('dice1').classList.remove('animate-roll-dice');
-            document.getElementById('dice2').classList.remove('animate-roll-dice');
-            this.isPlaying = false;
-            this.updateDicePlayButton();
-        }, 1000);
-    }
-
-    rollDice() {
-        return {
-            dice1: Math.floor(Math.random() * 6) + 1,
-            dice2: Math.floor(Math.random() * 6) + 1
-        };
-    }
-
-    updateDiceDisplay(dice1, dice2) {
-        this.updateSingleDie('dice1', dice1);
-        this.updateSingleDie('dice2', dice2);
-    }
-
-    updateSingleDie(diceId, value) {
-        const dice = document.getElementById(diceId);
-        const face = dice.querySelector('.dice-face');
-        
-        // Clear existing dots
-        face.innerHTML = '';
-        
-        // Add dots based on value
-        const dotPositions = {
-            1: [4], // center
-            2: [0, 8], // top-left, bottom-right
-            3: [0, 4, 8], // top-left, center, bottom-right
-            4: [0, 2, 6, 8], // corners
-            5: [0, 2, 4, 6, 8], // corners + center
-            6: [0, 2, 3, 5, 6, 8] // edges
-        };
-
-        for (let i = 0; i < 9; i++) {
-            const dot = document.createElement('div');
-            if (dotPositions[value].includes(i)) {
-                dot.className = 'dot';
-            } else {
-                dot.className = 'dot-placeholder';
-            }
-            face.appendChild(dot);
+    window.app.updateUI(); // Ensure balance updates
+    this.updateGameBalanceDisplay();
+        // Animate dice roll
+        const dice1 = Math.floor(Math.random() * 6) + 1;
+        const dice2 = Math.floor(Math.random() * 6) + 1;
+        const dice1Cube = document.getElementById('dice1-cube');
+        const dice2Cube = document.getElementById('dice2-cube');
+        if (dice1Cube && dice2Cube) {
+            dice1Cube.classList.remove('dice-cube-roll');
+            dice2Cube.classList.remove('dice-cube-roll');
+            dice1Cube.textContent = '🎲';
+            dice2Cube.textContent = '🎲';
+            void dice1Cube.offsetWidth; void dice2Cube.offsetWidth;
+            dice1Cube.classList.add('dice-cube-roll');
+            dice2Cube.classList.add('dice-cube-roll');
         }
+        setTimeout(() => {
+            if (dice1Cube && dice2Cube) {
+                dice1Cube.textContent = this.getDiceEmoji(dice1);
+                dice2Cube.textContent = this.getDiceEmoji(dice2);
+            }
+            this.processDiceResult({ dice1, dice2, prediction: this.gameState.prediction });
+        }, 1200);
     }
-
+    getDiceEmoji(n) {
+        return ['','⚀','⚁','⚂','⚃','⚄','⚅'][n] || '🎲';
+    }
     processDiceResult(result) {
         const sum = result.dice1 + result.dice2;
-        const prediction = this.gameState.prediction;
+        const prediction = result.prediction;
         let isWin = false;
         let multiplier = 0;
-
-        // Check win condition
         if (prediction.type === 'even' && sum % 2 === 0) {
             isWin = true;
             multiplier = this.gameSettings.dice.payouts.even;
@@ -592,13 +315,9 @@ class GameManager {
             isWin = true;
             multiplier = this.gameSettings.dice.payouts.specific;
         }
-
         const resultDiv = document.getElementById('dice-result');
-
         if (isWin) {
             const winAmount = this.betAmount * multiplier;
-            
-            // Add winnings
             window.authManager.updateUserBalance(
                 window.app.currentUser.id,
                 winAmount,
@@ -606,15 +325,8 @@ class GameManager {
                 `Dice game win (${prediction.type})`,
                 `DICE_WIN_${Date.now()}`
             );
-
-            // Update streak
-            const newStreak = (window.app.currentUser.currentStreak || 0) + 1;
-            window.authManager.updateUserStats(window.app.currentUser.id, {
-                currentStreak: newStreak,
-                longestStreak: Math.max(newStreak, window.app.currentUser.longestStreak || 0),
-                gamesPlayed: (window.app.currentUser.gamesPlayed || 0) + 1
-            });
-
+            window.app.updateUI();
+            this.updateGameBalanceDisplay();
             resultDiv.innerHTML = `
                 <div class="win-result">
                     <h3>🎉 You Won!</h3>
@@ -626,12 +338,6 @@ class GameManager {
             resultDiv.className = 'game-result win';
             window.app.showToast(`You won ${window.app.formatCurrency(winAmount)}!`, 'success');
         } else {
-            // Update stats for loss
-            window.authManager.updateUserStats(window.app.currentUser.id, {
-                currentStreak: 0,
-                gamesPlayed: (window.app.currentUser.gamesPlayed || 0) + 1
-            });
-
             resultDiv.innerHTML = `
                 <div class="lose-result">
                     <h3>😔 Better luck next time!</h3>
@@ -640,244 +346,172 @@ class GameManager {
                 </div>
             `;
             resultDiv.className = 'game-result lose';
+            window.app.showToast(`You lost ${window.app.formatCurrency(this.betAmount)}.`, 'error');
         }
-
         resultDiv.style.display = 'block';
-
-        // Hide result after 5 seconds
         setTimeout(() => {
+            this.isPlaying = false;
+            this.updateDicePlayButton();
+            this.gameState.prediction = null;
+            document.querySelectorAll('.dice-btn.selected').forEach(btn => btn.classList.remove('selected'));
+            document.querySelectorAll('.number-btn.selected').forEach(btn => btn.classList.remove('selected'));
             resultDiv.style.display = 'none';
-        }, 5000);
+        }, 2500);
     }
 
-    // Mines Game Logic
-    generateMinesGrid() {
-        const gridSize = this.gameSettings.mines.gridSize;
-        const grid = document.getElementById('mines-grid');
-        
-        // Set grid CSS
-        grid.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
-        grid.innerHTML = '';
-
-        // Create cells
-        for (let i = 0; i < gridSize * gridSize; i++) {
-            const cell = document.createElement('div');
-            cell.className = 'mine-cell';
-            cell.dataset.index = i;
-            cell.onclick = () => this.revealCell(i);
-            grid.appendChild(cell);
-        }
+    // --- Lucky Number UI & Logic ---
+    getLuckyNumberHTML() {
+        const sym = window.app.getCurrencySymbol();
+        return `
+            <div class="game-container modern-lucky-game">
+                <div class="lucky-game-header">
+                    <h2>Lucky Number <span style="font-size:1.5rem;">🎯</span></h2>
+                </div>
+                <div class="lucky-game-body">
+                    <div class="lucky-anim-area">
+                        <div class="lucky-anim" id="lucky-anim">
+                            <div class="lucky-number-face" id="lucky-number-face">?</div>
+                        </div>
+                    </div>
+                    <div class="lucky-controls">
+                        <div class="bet-group">
+                            <label>Bet Amount</label>
+                            <input type="number" id="lucky-bet" value="100" min="10" max="100000" step="10">
+                        </div>
+                        <div class="choice-group">
+                            <label>Pick a number (1-10)</label>
+                            <div class="lucky-choice-btns">
+                                ${Array.from({length: 10}, (_, i) => `<button class="lucky-btn" data-num="${i+1}" onclick="gameManager.selectLuckyNumber(${i+1})">${i+1}</button>`).join('')}
+                            </div>
+                        </div>
+                        <button class="btn-play big-play-btn" id="lucky-play-btn" onclick="gameManager.playLuckyNumber()">Play</button>
+                    </div>
+                </div>
+                <div class="game-result" id="lucky-result" style="display:none;"></div>
+            </div>
+        `;
     }
-
-    updateMinesCount() {
-        const minesCount = document.getElementById('mines-slider').value;
-        document.getElementById('mines-count').textContent = minesCount;
-        this.gameState.minesCount = parseInt(minesCount);
+    selectLuckyNumber(num) {
+        if (this.isPlaying) return;
+        this.gameState.luckyNum = num;
+        document.querySelectorAll('.lucky-btn').forEach(btn => btn.classList.remove('selected'));
+        const btn = document.querySelector(`.lucky-btn[data-num="${num}"]`);
+        if (btn) btn.classList.add('selected');
     }
-
-    startMines() {
-        const betDisplay = parseInt(document.getElementById('mines-bet').value);
-        const betAmount = window.app.convertToBase(betDisplay);
-        if (betAmount > (window.app.currentUser.balance || 0)) {
+    playLuckyNumber() {
+        if (this.isPlaying || !this.gameState.luckyNum) return;
+        const bet = parseInt(document.getElementById('lucky-bet').value);
+        const betBase = window.app.convertToBase(bet);
+        if (betBase > (window.app.currentUser.balance || 0)) {
             window.app.showToast('Insufficient balance', 'error');
             return;
         }
-
         this.isPlaying = true;
-        this.betAmount = betAmount;
-        this.gameState.gameStarted = true;
-        this.gameState.revealed = [];
-        this.gameState.multiplier = 1.0;
-        this.gameState.safeCells = 0;
-
-        // Deduct bet amount
+        this.betAmount = betBase;
         window.authManager.updateUserBalance(
             window.app.currentUser.id,
-            -betAmount,
+            -betBase,
             'game',
-            'Mines game bet',
-            `MINES_${Date.now()}`
+            'Lucky Number bet',
+            `LUCKY_${Date.now()}`
         );
-
-        // Generate mine positions
-        this.placeMines();
-
-        // Update UI
-        document.getElementById('mines-start-btn').style.display = 'none';
-        document.getElementById('mines-cashout-btn').style.display = 'block';
-        document.getElementById('current-multiplier').textContent = '×1.00';
-
-        // Reset grid
-        document.querySelectorAll('.mine-cell').forEach(cell => {
-            cell.className = 'mine-cell';
-            cell.onclick = () => this.revealCell(parseInt(cell.dataset.index));
-        });
-
-        window.app.showToast('Game started! Click cells to reveal them', 'info');
-    }
-
-    placeMines() {
-        const gridSize = this.gameSettings.mines.gridSize;
-        const totalCells = gridSize * gridSize;
-        const minesCount = this.gameState.minesCount;
-        
-        this.gameState.mines = [];
-        
-        while (this.gameState.mines.length < minesCount) {
-            const position = Math.floor(Math.random() * totalCells);
-            if (!this.gameState.mines.includes(position)) {
-                this.gameState.mines.push(position);
-            }
+    window.app.updateUI(); // Ensure balance updates
+    this.updateGameBalanceDisplay();
+        // Animate number flip
+        const luckyAnim = document.getElementById('lucky-anim');
+        const luckyFace = document.getElementById('lucky-number-face');
+        if (luckyAnim && luckyFace) {
+            luckyAnim.classList.remove('lucky-anim-flip');
+            luckyFace.textContent = '?';
+            void luckyAnim.offsetWidth;
+            luckyAnim.classList.add('lucky-anim-flip');
         }
+        // Simulate draw
+        const drawn = Math.floor(Math.random() * 10) + 1;
+        setTimeout(() => {
+            if (luckyFace) luckyFace.textContent = drawn;
+            this.processLuckyResult(this.gameState.luckyNum, drawn);
+        }, 1200);
     }
-
-    revealCell(index) {
-        if (!this.gameState.gameStarted || this.gameState.revealed.includes(index)) return;
-
-        const cell = document.querySelector(`.mine-cell[data-index="${index}"]`);
-        this.gameState.revealed.push(index);
-
-        if (this.gameState.mines.includes(index)) {
-            // Hit a mine - game over
-            cell.classList.add('mine', 'revealed');
-            cell.innerHTML = '💣';
-            this.endMinesGame(false);
-        } else {
-            // Safe cell
-            cell.classList.add('safe', 'revealed');
-            cell.innerHTML = '💎';
-            this.gameState.safeCells++;
-            
-            // Update multiplier
-            this.updateMinesMultiplier();
-        }
-    }
-
-    updateMinesMultiplier() {
-        const gridSize = this.gameSettings.mines.gridSize;
-        const totalCells = gridSize * gridSize;
-        const safeCells = this.gameState.safeCells;
-        const minesCount = this.gameState.minesCount;
-        
-        // Calculate multiplier based on risk
-        const safeRemaining = totalCells - minesCount - safeCells;
-        if (safeRemaining > 0) {
-            this.gameState.multiplier = 1 + (safeCells * 0.2 * (minesCount / 3));
-        }
-        
-        document.getElementById('current-multiplier').textContent = `×${this.gameState.multiplier.toFixed(2)}`;
-    }
-
-    cashoutMines() {
-        if (!this.gameState.gameStarted) return;
-        this.endMinesGame(true);
-    }
-
-    endMinesGame(cashout) {
-        this.gameState.gameStarted = false;
-        this.isPlaying = false;
-
-        // Update UI
-        document.getElementById('mines-start-btn').style.display = 'block';
-        document.getElementById('mines-cashout-btn').style.display = 'none';
-
-        const resultDiv = document.getElementById('mines-result');
-
-        if (cashout) {
-            const winAmount = Math.floor(this.betAmount * this.gameState.multiplier);
-            
-            // Add winnings
+    processLuckyResult(playerNum, drawnNum) {
+        const resultDiv = document.getElementById('lucky-result');
+        if (playerNum === drawnNum) {
+            const winAmount = Math.floor(this.betAmount * 10 * (1 - this.gameSettings.lucky.houseEdge));
             window.authManager.updateUserBalance(
                 window.app.currentUser.id,
                 winAmount,
                 'game',
-                `Mines game cashout`,
-                `MINES_WIN_${Date.now()}`
+                `Lucky Number win (${drawnNum})`,
+                `LUCKY_WIN_${Date.now()}`
             );
-
-            // Update streak
-            const newStreak = (window.app.currentUser.currentStreak || 0) + 1;
-            window.authManager.updateUserStats(window.app.currentUser.id, {
-                currentStreak: newStreak,
-                longestStreak: Math.max(newStreak, window.app.currentUser.longestStreak || 0),
-                gamesPlayed: (window.app.currentUser.gamesPlayed || 0) + 1
-            });
-
-            resultDiv.innerHTML = `
-                <div class="win-result">
-                    <h3>💰 Cashed Out!</h3>
-                    <p>You found ${this.gameState.safeCells} safe cells</p>
-                    <p>Multiplier: ×${this.gameState.multiplier.toFixed(2)}</p>
-                    <p class="win-amount">+${window.app.formatCurrency(winAmount)}</p>
-                </div>
-            `;
+            window.app.updateUI();
+            this.updateGameBalanceDisplay();
+            this.addWinningsFeed('Lucky Number', winAmount);
+            resultDiv.innerHTML = `<div class='win-result'><h3>🎉 You Won!</h3><p>Your number: <b>${playerNum}</b></p><p>Drawn: <b>${drawnNum}</b></p><p class='win-amount'>+${window.app.formatCurrency(winAmount)}</p></div>`;
             resultDiv.className = 'game-result win';
             window.app.showToast(`You won ${window.app.formatCurrency(winAmount)}!`, 'success');
         } else {
-            // Update stats for loss
-            window.authManager.updateUserStats(window.app.currentUser.id, {
-                currentStreak: 0,
-                gamesPlayed: (window.app.currentUser.gamesPlayed || 0) + 1
-            });
-
-            // Reveal all mines
-            this.gameState.mines.forEach(mineIndex => {
-                const cell = document.querySelector(`.mine-cell[data-index="${mineIndex}"]`);
-                if (!cell.classList.contains('revealed')) {
-                    cell.classList.add('mine', 'revealed');
-                    cell.innerHTML = '💣';
-                }
-            });
-
-            resultDiv.innerHTML = `
-                <div class="lose-result">
-                    <h3>💥 Game Over!</h3>
-                    <p>You hit a mine after finding ${this.gameState.safeCells} safe cells</p>
-                    <p>Better luck next time!</p>
-                </div>
-            `;
+            resultDiv.innerHTML = `<div class='lose-result'><h3>😔 Lost!</h3><p>Your number: <b>${playerNum}</b></p><p>Drawn: <b>${drawnNum}</b></p></div>`;
             resultDiv.className = 'game-result lose';
+            window.app.showToast(`You lost ${window.app.formatCurrency(this.betAmount)}.`, 'error');
         }
-
         resultDiv.style.display = 'block';
-
-        // Hide result after 5 seconds
         setTimeout(() => {
+            this.gameState.luckyNum = null;
+            document.querySelectorAll('.lucky-btn.selected').forEach(btn => btn.classList.remove('selected'));
+            this.isPlaying = false;
             resultDiv.style.display = 'none';
-        }, 5000);
+        }, 2500);
+    }
 
-        // Disable all cells
-        document.querySelectorAll('.mine-cell').forEach(cell => {
-            cell.onclick = null;
+    // --- Sidebar & Winnings Feed ---
+    highlightSidebar(gameType) {
+        document.querySelectorAll('.game-link').forEach(link => {
+            link.classList.remove('active');
+            if (link.dataset.game === gameType) link.classList.add('active');
         });
     }
-
-    // Utility functions
-    adjustBet(gameType, amount) {
-        const betInput = document.getElementById(`${gameType}-bet`);
-        const currentBet = parseInt(betInput.value) || 0;
-        const newBet = Math.max(10, Math.min(100000, currentBet + amount));
-        betInput.value = newBet;
-
-        // Update play button state
-        if (gameType === 'wheel') this.updateWheelPlayButton();
-        if (gameType === 'dice') this.updateDicePlayButton();
+    addWinningsFeed(game, amount) {
+        const username = window.app.currentUser.username || 'Player';
+        const entry = {
+            username,
+            game,
+            amount,
+            time: new Date().toISOString()
+        };
+        this.winningsFeed.unshift(entry);
+        if (this.winningsFeed.length > 10) this.winningsFeed.pop();
+        this.renderWinningsFeed();
     }
-
-    setQuickBet(gameType, amount) {
-        const betInput = document.getElementById(`${gameType}-bet`);
-        betInput.value = amount;
-
-        // Update play button state
-        if (gameType === 'wheel') this.updateWheelPlayButton();
-        if (gameType === 'dice') this.updateDicePlayButton();
+    renderWinningsFeed() {
+        const feed = document.getElementById('winnings-feed');
+        if (!feed) return;
+        feed.innerHTML = this.winningsFeed.map(w =>
+            `<li><b>${w.username}</b> won <span class='win-amount'>${window.app.formatCurrency(w.amount)}</span> in <span class='game-name'>${w.game}</span> <span class='time'>${window.utils.formatRelativeTime(w.time)}</span></li>`
+        ).join('');
     }
 }
 
-// Initialize game manager
+
+// Initialize game manager and sidebar logic
 document.addEventListener('DOMContentLoaded', () => {
     window.gameManager = new GameManager();
+    // Sidebar navigation for games
+    document.querySelectorAll('.game-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            const game = link.dataset.game;
+            window.gameManager.openGame(game);
+        });
+    });
+    // Initial winnings feed render
+    window.gameManager.renderWinningsFeed();
 });
+
+
+// For compatibility with inline onclick (if any remain)
+window.openGame = function(game) {
+    if (window.gameManager) window.gameManager.openGame(game);
+};
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {

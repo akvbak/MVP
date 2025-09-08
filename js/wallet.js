@@ -41,159 +41,260 @@ class WalletManager {
                 processingTime: '1-3 business days'
             }
         };
+        this.initUI();
     }
 
-    loadPendingWithdrawals() {
-        const withdrawals = localStorage.getItem('spinx_withdrawals');
-        return withdrawals ? JSON.parse(withdrawals) : [];
+    // --- UI Initialization ---
+    initUI() {
+        // Deposit button
+        const depositBtn = document.querySelector('.btn-primary[onclick*="Deposit"]');
+        if (depositBtn) depositBtn.onclick = () => this.showDepositModal();
+        // Withdraw button
+        const withdrawBtn = document.querySelector('.btn-secondary[onclick*="Withdraw"]');
+        if (withdrawBtn) withdrawBtn.onclick = () => this.showWithdrawModal();
     }
 
-    savePendingWithdrawals() {
-        localStorage.setItem('spinx_withdrawals', JSON.stringify(this.pendingWithdrawals));
-    }
-
-    openDepositModal() {
+    // --- Deposit Modal ---
+    showDepositModal() {
         const modal = document.getElementById('deposit-modal');
         const content = document.getElementById('deposit-content');
-        
         content.innerHTML = this.getDepositHTML();
         modal.classList.add('active');
         modal.style.display = 'flex';
+        // Attach method selection
+        content.querySelectorAll('.payment-method-card').forEach(card => {
+            card.onclick = () => this.showDepositForm(card.dataset.method);
+        });
     }
-
-    openWithdrawModal() {
-        const modal = document.getElementById('deposit-modal');
-        const modalHeader = modal.querySelector('.modal-header h3');
-        const content = document.getElementById('deposit-content');
-        
-        modalHeader.textContent = 'Withdraw Funds';
-        content.innerHTML = this.getWithdrawHTML();
-        modal.classList.add('active');
-        modal.style.display = 'flex';
-            setTimeout(() => this.bindWithdrawalEvents(), 100);
-    }
-
-        bindWithdrawalEvents() {
-            const amountInput = document.getElementById('withdrawal-amount');
-            const methodSelect = document.getElementById('withdrawal-method');
-            if (amountInput) {
-                amountInput.addEventListener('input', () => this.updateWithdrawalSummary());
-            }
-            if (methodSelect) {
-                methodSelect.addEventListener('change', () => this.updateWithdrawalSummary());
-            }
+    showDepositForm(method) {
+        const container = document.getElementById('deposit-form-container');
+        container.innerHTML = this.getDepositFormHTML(method);
+        container.style.display = 'block';
+        // Attach submit handler
+        const form = container.querySelector('#deposit-form');
+        if (form) {
+            form.addEventListener('submit', e => {
+                e.preventDefault();
+                this.processDeposit(form, method);
+            });
         }
+    }
+    processDeposit(form, method) {
+        const amount = parseFloat(form.querySelector('#deposit-amount').value);
+        const methodData = this.depositMethods[method];
+        
+        // Convert display amount to base currency for validation
+        const amountBase = window.app.convertToBase(amount);
+        const minAmountBase = window.app.convertToBase(methodData.minAmount);
+        const maxAmountBase = window.app.convertToBase(methodData.maxAmount);
+        
+        if (isNaN(amount) || amountBase < minAmountBase || amountBase > maxAmountBase) {
+            window.app.showToast(`Invalid deposit amount. Range: ${window.app.formatCurrency(methodData.minAmount)} - ${window.app.formatCurrency(methodData.maxAmount)}`, 'error');
+            return;
+        }
+        
+        // Validate additional form fields based on method
+        if (!this.validateDepositForm(form, method)) {
+            return;
+        }
+        
+        // Simulate deposit
+        window.app.showLoading();
+        setTimeout(() => {
+            window.app.hideLoading();
+            window.authManager.updateUserBalance(
+                window.app.currentUser.id,
+                amountBase,
+                'deposit',
+                `${methodData.name} deposit`,
+                `DEP_${Date.now()}`
+            );
+            window.app.showToast('Deposit successful!', 'success');
+            this.updateWalletUI();
+            window.app.updateUI();
+            document.getElementById('deposit-modal').style.display = 'none';
+        }, 1200);
+    }
     getDepositHTML() {
-        return `
-            <div class="deposit-container">
-                <div class="deposit-methods">
-                    <h4>Choose Deposit Method</h4>
-                    <div class="payment-methods-grid">
-                        ${Object.entries(this.depositMethods).map(([key, method]) => `
-                            <div class="payment-method-card" onclick="walletManager.selectDepositMethod('${key}')">
-                                <div class="method-icon">
-                                    <i class="fas ${this.getMethodIcon(key)}"></i>
-                                </div>
-                                <h5>${method.name}</h5>
-                                <p>Fee: ${(method.fee * 100).toFixed(1)}%</p>
-                                <p class="method-range">₦${method.minAmount.toLocaleString()} - ₦${method.maxAmount.toLocaleString()}</p>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-                
-                <div id="deposit-form-container" style="display: none;">
-                    <!-- Deposit form will be loaded here -->
-                </div>
-            </div>
-        `;
-    }
-
-    getWithdrawHTML() {
-        const user = window.app.currentUser;
-        const kycRequired = user.kycStatus !== 'verified';
-        
-        if (kycRequired) {
-            return `
-                <div class="kyc-required">
-                    <div class="warning-message">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <h4>KYC Verification Required</h4>
-                        <p>You need to complete KYC verification before you can withdraw funds.</p>
-                        <button class="btn-primary" onclick="window.app.openKYCModal(); window.app.closeModal('deposit-modal');">
-                            Complete KYC
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
-
-        return `
-            <div class="withdraw-container">
-                <div class="current-balance">
-                    <h4>Available Balance</h4>
-                    <div class="balance-amount">${window.app.formatCurrency(user.balance)}</div>
-                </div>
-
-                <form id="withdrawal-form" onsubmit="walletManager.processWithdrawal(event)">
-                    <div class="form-group">
-                        <label>Withdrawal Method</label>
-                        <select id="withdrawal-method" onchange="walletManager.updateWithdrawalLimits()" required>
-                            <option value="">Select method</option>
-                            ${Object.entries(this.withdrawalMethods).map(([key, method]) => `
-                                <option value="${key}">${method.name} (Fee: ${(method.fee * 100).toFixed(1)}%)</option>
-                            `).join('')}
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Amount</label>
-                        <input type="number" id="withdrawal-amount" placeholder="Enter amount" min="1000" max="${user.balance}" required>
-                        <small id="withdrawal-limits">Select a method to see limits</small>
-                    </div>
-
-                    <div class="form-group" id="account-details-group" style="display: none;">
-                        <!-- Account details will be shown based on method -->
-                    </div>
-
-                    <div class="withdrawal-summary" id="withdrawal-summary" style="display: none;">
-                        <!-- Summary will be shown here -->
-                    </div>
-
-                    <button type="submit" class="btn-primary btn-full">Request Withdrawal</button>
-                </form>
-
-                <div class="pending-withdrawals" id="pending-withdrawals">
-                    ${this.getPendingWithdrawalsHTML()}
-                </div>
-            </div>
-        `;
-    }
-
-    getPendingWithdrawalsHTML() {
-        const userWithdrawals = this.pendingWithdrawals.filter(w => w.userId === window.app.currentUser.id);
-        
-        if (userWithdrawals.length === 0) {
-            return '<div class="no-pending"><p>No pending withdrawals</p></div>';
-        }
-
-        return `
-            <div class="pending-list">
-                <h4>Pending Withdrawals</h4>
-                ${userWithdrawals.map(withdrawal => `
-                    <div class="pending-item">
-                        <div class="pending-info">
-                            <span class="amount">${window.app.formatCurrency(withdrawal.amount)}</span>
-                            <span class="method">${withdrawal.method}</span>
-                            <span class="date">${new Date(withdrawal.date).toLocaleDateString()}</span>
-                        </div>
-                        <span class="status ${withdrawal.status}">${withdrawal.status}</span>
+        return `<div class="deposit-methods">
+            <h4>Choose Deposit Method</h4>
+            <div class="payment-methods-grid">
+                ${Object.entries(this.depositMethods).map(([key, method]) => `
+                    <div class="payment-method-card" data-method="${key}">
+                        <div class="method-icon"><i class="fas ${this.getMethodIcon(key)}"></i></div>
+                        <h5>${method.name}</h5>
+                        <p>Fee: ${(method.fee * 100).toFixed(1)}%</p>
+                        <p class="method-range">₦${method.minAmount.toLocaleString()} - ₦${method.maxAmount.toLocaleString()}</p>
                     </div>
                 `).join('')}
             </div>
+            <div id="deposit-form-container" style="display:none;"></div>
+        </div>`;
+    }
+    getDepositFormHTML(method) {
+        const methodData = this.depositMethods[method];
+        const minAmount = window.app.formatCurrency(methodData.minAmount);
+        const maxAmount = window.app.formatCurrency(methodData.maxAmount);
+        
+        let formFields = `
+            <div class="form-group">
+                <label>Amount (${window.app.getCurrencySymbol()})</label>
+                <input type="number" id="deposit-amount" min="${methodData.minAmount}" max="${methodData.maxAmount}" step="0.01" required>
+                <small class="form-hint">Range: ${minAmount} - ${maxAmount}</small>
+            </div>
         `;
+        
+        if (method === 'mobile-money') {
+            formFields += `
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="deposit-phone" placeholder="08012345678" required>
+                </div>
+                <div class="form-group">
+                    <label>Network</label>
+                    <select id="deposit-network" required>
+                        <option value="">Select Network</option>
+                        ${methodData.providers.map(provider => `<option value="${provider}">${provider}</option>`).join('')}
+                    </select>
+                </div>
+            `;
+        } else if (method === 'card') {
+            formFields += `
+                <div class="form-group">
+                    <label>Card Number</label>
+                    <input type="text" id="deposit-card-number" placeholder="1234 5678 9012 3456" maxlength="19" required>
+                </div>
+                <div class="form-group">
+                    <label>Expiry Date</label>
+                    <input type="text" id="deposit-expiry" placeholder="MM/YY" maxlength="5" required>
+                </div>
+                <div class="form-group">
+                    <label>CVV</label>
+                    <input type="text" id="deposit-cvv" placeholder="123" maxlength="4" required>
+                </div>
+                <div class="form-group">
+                    <label>Cardholder Name</label>
+                    <input type="text" id="deposit-cardholder" placeholder="John Doe" required>
+                </div>
+            `;
+        } else if (method === 'crypto') {
+            formFields += `
+                <div class="form-group">
+                    <label>Cryptocurrency</label>
+                    <select id="deposit-crypto" required>
+                        <option value="">Select Crypto</option>
+                        ${methodData.providers.map(crypto => `<option value="${crypto}">${crypto}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Wallet Address</label>
+                    <input type="text" id="deposit-wallet" placeholder="Enter your wallet address" required>
+                </div>
+            `;
+        }
+        
+        return `<form id="deposit-form">
+            ${formFields}
+            <button type="submit" class="btn-primary btn-full">Deposit ${window.app.formatCurrency(methodData.minAmount)}</button>
+        </form>`;
     }
 
+    // --- Withdraw Modal ---
+    showWithdrawModal() {
+        const modal = document.getElementById('deposit-modal');
+        const content = document.getElementById('deposit-content');
+        content.innerHTML = this.getWithdrawHTML();
+        modal.classList.add('active');
+        modal.style.display = 'flex';
+        // Attach submit handler
+        const form = content.querySelector('#withdrawal-form');
+        if (form) {
+            form.addEventListener('submit', e => {
+                e.preventDefault();
+                this.processWithdrawal(form);
+            });
+        }
+    }
+    processWithdrawal(form) {
+        const method = form.querySelector('#withdrawal-method').value;
+        const amount = parseFloat(form.querySelector('#withdrawal-amount').value);
+        const methodData = this.withdrawalMethods[method];
+        
+        // Convert display amount to base currency for validation
+        const amountBase = window.app.convertToBase(amount);
+        const minAmountBase = window.app.convertToBase(methodData.minAmount);
+        const userBalanceBase = window.app.currentUser.balance;
+        
+        if (!method || isNaN(amount) || amountBase < minAmountBase || amountBase > userBalanceBase) {
+            window.app.showToast(`Invalid withdrawal amount. Range: ${window.app.formatCurrency(methodData.minAmount)} - ${window.app.formatCurrency(window.app.convertFromBase(userBalanceBase))}`, 'error');
+            return;
+        }
+        
+        // Validate additional form fields based on method
+        if (!this.validateWithdrawalForm(form, method)) {
+            return;
+        }
+        
+        window.app.showLoading();
+        setTimeout(() => {
+            window.app.hideLoading();
+            window.authManager.updateUserBalance(
+                window.app.currentUser.id,
+                -amountBase,
+                'withdrawal',
+                `${methodData.name} withdrawal`,
+                `WD_${Date.now()}`
+            );
+            window.app.showToast('Withdrawal request submitted!', 'success');
+            this.updateWalletUI();
+            window.app.updateUI();
+            document.getElementById('deposit-modal').style.display = 'none';
+        }, 1200);
+    }
+    getWithdrawHTML() {
+        const user = window.app.currentUser;
+        const userBalanceDisplay = window.app.formatCurrency(window.app.convertFromBase(user.balance));
+        
+        return `<form id="withdrawal-form">
+            <div class="form-group">
+                <label>Withdrawal Method</label>
+                <select id="withdrawal-method" required>
+                    <option value="">Select method</option>
+                    ${Object.entries(this.withdrawalMethods).map(([key, method]) => `
+                        <option value="${key}">${method.name} (Fee: ${(method.fee * 100).toFixed(1)}%)</option>
+                    `).join('')}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Amount (${window.app.getCurrencySymbol()})</label>
+                <input type="number" id="withdrawal-amount" min="1000" step="0.01" required>
+                <small class="form-hint">Available: ${userBalanceDisplay}</small>
+            </div>
+            <div id="withdrawal-account-details" style="display:none;">
+                <!-- Account details will be populated based on method -->
+            </div>
+            <button type="submit" class="btn-primary btn-full">Request Withdrawal</button>
+        </form>`;
+    }
+
+    // --- UI Update ---
+    updateWalletUI() {
+        const walletBalance = document.getElementById('wallet-balance');
+        if (walletBalance && window.app.currentUser) {
+            walletBalance.textContent = window.app.formatCurrency(window.app.currentUser.balance);
+        }
+        const transactionList = document.getElementById('transaction-list');
+        if (transactionList && window.app.currentUser) {
+            transactionList.innerHTML = this.getTransactionsHTML();
+        }
+    }
+    getTransactionsHTML() {
+        const txs = window.app.currentUser.transactions || [];
+        if (!txs.length) return '<div class="no-transactions">No transactions yet</div>';
+        return txs.map(tx => `<div class="transaction-item ${tx.amount >= 0 ? 'credit' : 'debit'}">
+            <span>${tx.type}</span> <span>${window.app.formatCurrency(tx.amount)}</span> <span>${tx.description}</span> <span>${new Date(tx.date).toLocaleString()}</span>
+        </div>`).join('');
+    }
     getMethodIcon(method) {
         const icons = {
             'mobile-money': 'fa-mobile-alt',
@@ -203,592 +304,131 @@ class WalletManager {
         };
         return icons[method] || 'fa-wallet';
     }
-
-    selectDepositMethod(method) {
-        const container = document.getElementById('deposit-form-container');
-        container.innerHTML = this.getDepositFormHTML(method);
-        container.style.display = 'block';
-        
-        // Scroll to form
-        container.scrollIntoView({ behavior: 'smooth' });
+    loadPendingWithdrawals() {
+        const withdrawals = localStorage.getItem('spinx_withdrawals');
+        return withdrawals ? JSON.parse(withdrawals) : [];
     }
 
-    getDepositFormHTML(method) {
+    // --- Validation Methods ---
+    validateDepositForm(form, method) {
+        if (method === 'mobile-money') {
+            const phone = form.querySelector('#deposit-phone').value;
+            const network = form.querySelector('#deposit-network').value;
+            
+            if (!window.utils.validatePhone(phone)) {
+                window.app.showToast('Please enter a valid phone number', 'error');
+                return false;
+            }
+            
+            if (!network) {
+                window.app.showToast('Please select a network', 'error');
+                return false;
+            }
+        } else if (method === 'card') {
+            const cardNumber = form.querySelector('#deposit-card-number').value;
+            const expiry = form.querySelector('#deposit-expiry').value;
+            const cvv = form.querySelector('#deposit-cvv').value;
+            const cardholder = form.querySelector('#deposit-cardholder').value;
+            
+            if (!window.utils.validateCardNumber(cardNumber)) {
+                window.app.showToast('Please enter a valid card number', 'error');
+                return false;
+            }
+            
+            if (!window.utils.validateExpiryDate(expiry)) {
+                window.app.showToast('Please enter a valid expiry date (MM/YY)', 'error');
+                return false;
+            }
+            
+            if (!window.utils.validateCVV(cvv)) {
+                window.app.showToast('Please enter a valid CVV', 'error');
+                return false;
+            }
+            
+            if (!cardholder.trim()) {
+                window.app.showToast('Please enter cardholder name', 'error');
+                return false;
+            }
+        } else if (method === 'crypto') {
+            const crypto = form.querySelector('#deposit-crypto').value;
+            const wallet = form.querySelector('#deposit-wallet').value;
+            
+            if (!crypto) {
+                window.app.showToast('Please select a cryptocurrency', 'error');
+                return false;
+            }
+            
+            if (!wallet.trim()) {
+                window.app.showToast('Please enter wallet address', 'error');
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    validateWithdrawalForm(form, method) {
+        if (method === 'mobile-money') {
+            const phone = form.querySelector('#withdrawal-phone').value;
+            const network = form.querySelector('#withdrawal-network').value;
+            
+            if (!window.utils.validatePhone(phone)) {
+                window.app.showToast('Please enter a valid phone number', 'error');
+                return false;
+            }
+            
+            if (!network) {
+                window.app.showToast('Please select a network', 'error');
+                return false;
+            }
+        } else if (method === 'bank') {
+            const bank = form.querySelector('#withdrawal-bank').value;
+            const accountNumber = form.querySelector('#withdrawal-account').value;
+            const accountName = form.querySelector('#withdrawal-account-name').value;
+            
+            if (!bank) {
+                window.app.showToast('Please select a bank', 'error');
+                return false;
+            }
+            
+            if (!accountNumber || accountNumber.length < 10) {
+                window.app.showToast('Please enter a valid account number', 'error');
+                return false;
+            }
+            
+            if (!accountName.trim()) {
+                window.app.showToast('Please enter account name', 'error');
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    updateDepositSummary(method, amount) {
         const methodData = this.depositMethods[method];
-        const sym = window.app.getCurrencySymbol();
+        const fee = amount * methodData.fee;
+        const total = amount + fee;
         
-        return `
-            <div class="deposit-form">
-                <div class="method-header">
-                    <button class="back-btn" onclick="walletManager.backToDepositMethods()">
-                        <i class="fas fa-arrow-left"></i> Back
-                    </button>
-                    <h4>Deposit via ${methodData.name}</h4>
-                </div>
-
-                <form id="deposit-form" onsubmit="walletManager.processDeposit(event, '${method}')">
-                    <div class="form-group">
-                        <label>Amount</label>
-                        <input type="number" id="deposit-amount" placeholder="Enter amount" 
-                               min="${methodData.minAmount}" max="${methodData.maxAmount}" required>
-                        <small>Min: ${sym}${methodData.minAmount.toLocaleString()} - Max: ${sym}${methodData.maxAmount.toLocaleString()}</small>
-                    </div>
-
-                    ${this.getMethodSpecificFields(method)}
-
-                    <div class="deposit-summary" id="deposit-summary">
-                        <div class="summary-row">
-                            <span>Amount:</span>
-                            <span id="summary-amount">${sym}0</span>
-                        </div>
-                        <div class="summary-row">
-                            <span>Fee (${(methodData.fee * 100).toFixed(1)}%):</span>
-                            <span id="summary-fee">${sym}0</span>
-                        </div>
-                        <div class="summary-row total">
-                            <span>Total to Pay:</span>
-                            <span id="summary-total">${sym}0</span>
-                        </div>
-                        <div class="summary-row">
-                            <span>You will receive:</span>
-                            <span id="summary-receive">${sym}0</span>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn-primary btn-full">Proceed to Payment</button>
-                </form>
-            </div>
-        `;
+        return {
+            amount: window.app.formatCurrency(amount),
+            fee: window.app.formatCurrency(fee),
+            total: window.app.formatCurrency(total)
+        };
     }
 
-    getMethodSpecificFields(method) {
-        switch (method) {
-            case 'mobile-money':
-                return `
-                    <div class="form-group">
-                        <label>Mobile Network</label>
-                        <select id="mobile-network" required>
-                            <option value="">Select network</option>
-                            <option value="mtn">MTN</option>
-                            <option value="airtel">Airtel</option>
-                            <option value="glo">Glo</option>
-                            <option value="9mobile">9mobile</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Phone Number</label>
-                        <input type="tel" id="mobile-phone" placeholder="08012345678" required>
-                    </div>
-                `;
-            
-            case 'card':
-                return `
-                    <div class="form-group">
-                        <label>Card Number</label>
-                        <input type="text" id="card-number" placeholder="1234 5678 9012 3456" 
-                               pattern="[0-9\s]{13,19}" maxlength="19" required>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Expiry Date</label>
-                            <input type="text" id="card-expiry" placeholder="MM/YY" 
-                                   pattern="[0-9]{2}/[0-9]{2}" maxlength="5" required>
-                        </div>
-                        <div class="form-group">
-                            <label>CVV</label>
-                            <input type="text" id="card-cvv" placeholder="123" 
-                                   pattern="[0-9]{3,4}" maxlength="4" required>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Card Holder Name</label>
-                        <input type="text" id="card-name" placeholder="John Doe" required>
-                    </div>
-                `;
-            
-            case 'crypto':
-                return `
-                    <div class="form-group">
-                        <label>Cryptocurrency</label>
-                        <select id="crypto-type" required>
-                            <option value="">Select cryptocurrency</option>
-                            <option value="btc">Bitcoin (BTC)</option>
-                            <option value="usdt">Tether (USDT)</option>
-                            <option value="eth">Ethereum (ETH)</option>
-                        </select>
-                    </div>
-                    <div class="crypto-info">
-                        <p><i class="fas fa-info-circle"></i> You will be provided with a wallet address to send your cryptocurrency to.</p>
-                    </div>
-                `;
-            
-            default:
-                return '';
-        }
-    }
-
-    backToDepositMethods() {
-        const container = document.getElementById('deposit-form-container');
-        container.style.display = 'none';
-    }
-
-    updateWithdrawalLimits() {
-        const methodSelect = document.getElementById('withdrawal-method');
-        const amountInput = document.getElementById('withdrawal-amount');
-        const limitsText = document.getElementById('withdrawal-limits');
-        const accountGroup = document.getElementById('account-details-group');
-        
-        const method = methodSelect.value;
-        
-        if (!method) {
-            limitsText.textContent = 'Select a method to see limits';
-            accountGroup.style.display = 'none';
-            return;
-        }
-        
-        const methodData = this.withdrawalMethods[method];
-        amountInput.min = methodData.minAmount;
-        amountInput.max = window.app.currentUser.balance;
-        
-        limitsText.innerHTML = `
-            Min: ₦${methodData.minAmount.toLocaleString()} - Max: ₦${window.app.currentUser.balance.toLocaleString()}<br>
-            Processing time: ${methodData.processingTime}
-        `;
-        
-        // Show account details form
-        accountGroup.innerHTML = this.getWithdrawalAccountFields(method);
-        accountGroup.style.display = 'block';
-        
-        // Update summary when amount changes
-        amountInput.oninput = () => this.updateWithdrawalSummary();
-    }
-
-    getWithdrawalAccountFields(method) {
-        switch (method) {
-            case 'mobile-money':
-                return `
-                    <label>Mobile Money Details</label>
-                    <select id="withdrawal-network" required>
-                        <option value="">Select network</option>
-                        <option value="mtn">MTN</option>
-                        <option value="airtel">Airtel</option>
-                        <option value="glo">Glo</option>
-                        <option value="9mobile">9mobile</option>
-                    </select>
-                    <input type="tel" id="withdrawal-phone" placeholder="Phone number" required>
-                `;
-            
-            case 'bank':
-                return `
-                    <label>Bank Account Details</label>
-                    <input type="text" id="withdrawal-bank" placeholder="Bank name" required>
-                    <input type="text" id="withdrawal-account-number" placeholder="Account number" required>
-                    <input type="text" id="withdrawal-account-name" placeholder="Account name" required>
-                `;
-            
-            default:
-                return '';
-        }
-    }
-
-    updateWithdrawalSummary() {
-        const method = document.getElementById('withdrawal-method').value;
-        const amount = parseFloat(document.getElementById('withdrawal-amount').value) || 0;
-        const summaryDiv = document.getElementById('withdrawal-summary');
-        if (!method || amount <= 0) {
-            summaryDiv.style.display = 'none';
-            summaryDiv.innerHTML = '';
-            return;
-        }
+    updateWithdrawalSummary(method, amount) {
         const methodData = this.withdrawalMethods[method];
         const fee = amount * methodData.fee;
-        const total = amount - fee;
-        const sym = window.app.getCurrencySymbol();
-        summaryDiv.innerHTML = `
-            <div class="summary-row">
-                <span>Withdrawal Amount:</span>
-                <span>${sym}${amount.toLocaleString()}</span>
-            </div>
-            <div class="summary-row">
-                <span>Fee (${(methodData.fee * 100).toFixed(1)}%):</span>
-                <span>-${sym}${fee.toLocaleString()}</span>
-            </div>
-            <div class="summary-row total">
-                <span>Total to be received:</span>
-                <span>${sym}${total.toLocaleString()}</span>
-            </div>
-        `;
-        summaryDiv.style.display = 'block';
-    }
-
-    async processDeposit(event, method) {
-        event.preventDefault();
+        const total = amount + fee;
         
-        const amountDisplay = parseFloat(document.getElementById('deposit-amount').value);
-        const methodData = this.depositMethods[method];
-        
-        if (amountDisplay < methodData.minAmount || amountDisplay > methodData.maxAmount) {
-            window.app.showToast(`Amount must be between ${window.app.getCurrencySymbol()}${methodData.minAmount.toLocaleString()} and ${window.app.getCurrencySymbol()}${methodData.maxAmount.toLocaleString()}`, 'error');
-            return;
-        }
-        
-    const fee = 0;
-    const totalToPay = amountDisplay;
-    const amount = window.app.convertToBase(amountDisplay);
-        
-        // Validate method-specific fields
-        if (!this.validateDepositForm(method)) {
-            return;
-        }
-        
-        // Show loading
-        window.app.showLoading();
-        
-        // Simulate payment processing
-        setTimeout(() => {
-            const success = Math.random() > 0.1; // 90% success rate for demo
-            
-            window.app.hideLoading();
-            
-            if (success) {
-                // Process successful deposit
-                window.authManager.updateUserBalance(
-                    window.app.currentUser.id,
-                    amount,
-                    'deposit',
-                    `${methodData.name} deposit`,
-                    `DEP_${Date.now()}`
-                );
-                
-                // Process referral if applicable
-                if (window.app.currentUser.referredBy) {
-                    window.authManager.processReferral(window.app.currentUser.id, amount);
-                }
-                
-                window.app.showToast(`Deposit successful! ${window.app.formatCurrency(amount)} added to your account`, 'success');
-                window.app.closeModal('deposit-modal');
-                
-                // Reset form
-                document.getElementById('deposit-form').reset();
-            } else {
-                window.app.showToast('Deposit failed. Please try again or contact support.', 'error');
-            }
-        }, 2000);
-    }
-
-    validateDepositForm(method) {
-        switch (method) {
-            case 'mobile-money':
-                const network = document.getElementById('mobile-network').value;
-                const phone = document.getElementById('mobile-phone').value;
-                
-                if (!network) {
-                    window.app.showToast('Please select a mobile network', 'error');
-                    return false;
-                }
-                
-                if (!phone || !/^\+?\d{9,15}$/.test(phone.replace(/\s/g, ''))) {
-                    window.app.showToast('Please enter a valid phone number', 'error');
-                    return false;
-                }
-                break;
-                
-            case 'card':
-                const cardNumber = document.getElementById('card-number').value;
-                const expiry = document.getElementById('card-expiry').value;
-                const cvv = document.getElementById('card-cvv').value;
-                const name = document.getElementById('card-name').value;
-                
-                if (!cardNumber || !/^[0-9\s]{13,19}$/.test(cardNumber) || !luhnCheck(cardNumber)) {
-                    window.app.showToast('Please enter a valid card number', 'error');
-                    return false;
-                }
-                
-                if (!expiry || !/^[0-9]{2}\/[0-9]{2}$/.test(expiry)) {
-                    window.app.showToast('Please enter a valid expiry date (MM/YY)', 'error');
-                    return false;
-                }
-                
-                if (!cvv || !/^[0-9]{3,4}$/.test(cvv)) {
-                    window.app.showToast('Please enter a valid CVV', 'error');
-                    return false;
-                }
-                
-                if (!name || name.trim().length < 2) {
-                    window.app.showToast('Please enter the card holder name', 'error');
-                    return false;
-                }
-                break;
-                
-            case 'crypto':
-                const cryptoType = document.getElementById('crypto-type').value;
-                
-                if (!cryptoType) {
-                    window.app.showToast('Please select a cryptocurrency', 'error');
-                    return false;
-                }
-                break;
-        }
-        
-        return true;
-    }
-
-    async processWithdrawal(event) {
-        event.preventDefault();
-        
-        const method = document.getElementById('withdrawal-method').value;
-        const amountDisplay = parseFloat(document.getElementById('withdrawal-amount').value);
-        const user = window.app.currentUser;
-        
-        if (!method) {
-            window.app.showToast('Please select a withdrawal method', 'error');
-            return;
-        }
-        
-        const methodData = this.withdrawalMethods[method];
-        
-        if (amountDisplay < methodData.minAmount) {
-            window.app.showToast(`Minimum withdrawal amount is ${window.app.getCurrencySymbol()}${methodData.minAmount.toLocaleString()}`, 'error');
-            return;
-        }
-        
-        const amount = window.app.convertToBase(amountDisplay);
-        if (amount > user.balance) {
-            window.app.showToast('Insufficient balance', 'error');
-            return;
-        }
-        
-        // Validate account details
-        if (!this.validateWithdrawalForm(method)) {
-            return;
-        }
-        
-        const fee = amountDisplay * methodData.fee;
-        const finalAmountDisplay = amountDisplay - fee;
-        
-        // Create withdrawal request
-        const withdrawal = {
-            id: `WD_${Date.now()}`,
-            userId: user.id,
-            username: user.username,
-            method: methodData.name,
-            amount: amount,
-            fee: window.app.convertToBase(fee),
-            finalAmount: window.app.convertToBase(finalAmountDisplay),
-            accountDetails: this.getWithdrawalAccountDetails(method),
-            status: 'pending',
-            date: new Date().toISOString(),
-            reference: `WD_${Date.now()}`
+        return {
+            amount: window.app.formatCurrency(amount),
+            fee: window.app.formatCurrency(fee),
+            total: window.app.formatCurrency(total),
+            processingTime: methodData.processingTime
         };
-        
-        // Add to pending withdrawals
-        this.pendingWithdrawals.push(withdrawal);
-        this.savePendingWithdrawals();
-        
-        // Deduct amount from balance (will be returned if withdrawal is rejected)
-        window.authManager.updateUserBalance(
-            user.id,
-            -amount,
-            'withdrawal',
-            `Withdrawal request (${methodData.name})`,
-            withdrawal.reference
-        );
-        
-        window.app.showToast('Withdrawal request submitted successfully. You will be notified when processed.', 'success');
-        window.app.closeModal('deposit-modal');
-        
-        // Update pending withdrawals display
-        this.updatePendingWithdrawalsDisplay();
-    }
-
-    validateWithdrawalForm(method) {
-        switch (method) {
-            case 'mobile-money':
-                const network = document.getElementById('withdrawal-network').value;
-                const phone = document.getElementById('withdrawal-phone').value;
-                
-                if (!network) {
-                    window.app.showToast('Please select a mobile network', 'error');
-                    return false;
-                }
-                
-                if (!phone || !/^[0-9]{11}$/.test(phone.replace(/\s/g, ''))) {
-                    window.app.showToast('Please enter a valid phone number', 'error');
-                    return false;
-                }
-                break;
-                
-            case 'bank':
-                const bank = document.getElementById('withdrawal-bank').value;
-                const accountNumber = document.getElementById('withdrawal-account-number').value;
-                const accountName = document.getElementById('withdrawal-account-name').value;
-                
-                if (!bank || bank.trim().length < 2) {
-                    window.app.showToast('Please enter the bank name', 'error');
-                    return false;
-                }
-                
-                if (!accountNumber || !/^[0-9]{10}$/.test(accountNumber)) {
-                    window.app.showToast('Please enter a valid 10-digit account number', 'error');
-                    return false;
-                }
-                
-                if (!accountName || accountName.trim().length < 2) {
-                    window.app.showToast('Please enter the account name', 'error');
-                    return false;
-                }
-                break;
-        }
-        
-        return true;
-    }
-
-    getWithdrawalAccountDetails(method) {
-        switch (method) {
-            case 'mobile-money':
-                return {
-                    network: document.getElementById('withdrawal-network').value,
-                    phone: document.getElementById('withdrawal-phone').value
-                };
-                
-            case 'bank':
-                return {
-                    bank: document.getElementById('withdrawal-bank').value,
-                    accountNumber: document.getElementById('withdrawal-account-number').value,
-                    accountName: document.getElementById('withdrawal-account-name').value
-                };
-                
-            default:
-                return {};
-        }
-    }
-
-    updatePendingWithdrawalsDisplay() {
-        const container = document.getElementById('pending-withdrawals');
-        if (container) {
-            container.innerHTML = this.getPendingWithdrawalsHTML();
-        }
-    }
-
-    // Admin functions for processing withdrawals
-    approveWithdrawal(withdrawalId) {
-        const withdrawal = this.pendingWithdrawals.find(w => w.id === withdrawalId);
-        if (!withdrawal) return false;
-        
-        withdrawal.status = 'approved';
-        withdrawal.processedAt = new Date().toISOString();
-        
-        this.savePendingWithdrawals();
-        
-        // In a real app, this would trigger the actual payment
-        window.app.showToast(`Withdrawal ${withdrawalId} approved`, 'success');
-        
-        return true;
-    }
-
-    rejectWithdrawal(withdrawalId, reason) {
-        const withdrawal = this.pendingWithdrawals.find(w => w.id === withdrawalId);
-        if (!withdrawal) return false;
-        
-        withdrawal.status = 'rejected';
-        withdrawal.rejectionReason = reason;
-        withdrawal.processedAt = new Date().toISOString();
-        
-        // Refund the amount to user's balance
-        window.authManager.updateUserBalance(
-            withdrawal.userId,
-            withdrawal.amount,
-            'refund',
-            `Withdrawal refund: ${reason}`,
-            `REF_${withdrawalId}`
-        );
-        
-        this.savePendingWithdrawals();
-        
-        window.app.showToast(`Withdrawal ${withdrawalId} rejected and refunded`, 'success');
-        
-        return true;
-    }
-
-    getAllWithdrawals() {
-        return this.pendingWithdrawals;
     }
 }
 
-// Initialize wallet manager
-document.addEventListener('DOMContentLoaded', () => {
-    window.walletManager = new WalletManager();
-    
-    // Add event listeners for deposit amount changes
-    document.addEventListener('input', (e) => {
-        if (e.target.id === 'deposit-amount') {
-            walletManager.updateDepositSummary();
-        }
-    });
-});
-
-// Additional global functions
-function updateDepositSummary() {
-    const amount = parseFloat(document.getElementById('deposit-amount').value) || 0;
-    const method = document.querySelector('form[onsubmit*="processDeposit"]')?.getAttribute('onsubmit')?.match(/'([^']+)'/)?.[1];
-    
-    if (!method || amount <= 0) return;
-    
-    const methodData = window.walletManager.depositMethods[method];
-    const fee = amount * methodData.fee;
-    const total = amount + fee;
-    
-    const sym = window.app.getCurrencySymbol();
-    document.getElementById('summary-amount').textContent = `${sym}${amount.toLocaleString()}`;
-    document.getElementById('summary-fee').textContent = `${sym}${fee.toLocaleString()}`;
-    document.getElementById('summary-total').textContent = `${sym}${total.toLocaleString()}`;
-    document.getElementById('summary-receive').textContent = `${sym}${amount.toLocaleString()}`;
-}
-
-// Format card number input
-document.addEventListener('input', (e) => {
-    if (e.target.id === 'card-number') {
-        let value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-        let matches = value.match(/\d{4,16}/g);
-        let match = matches && matches[0] || '';
-        let parts = [];
-        for (let i = 0; i < match.length; i += 4) {
-            parts.push(match.substring(i, i + 4));
-        }
-        if (parts.length) {
-            e.target.value = parts.join(' ');
-        } else {
-            e.target.value = value;
-        }
-    }
-    
-    if (e.target.id === 'card-expiry') {
-        let value = e.target.value.replace(/\D/g, '');
-        if (value.length >= 2) {
-            value = value.substring(0, 2) + '/' + value.substring(2, 4);
-        }
-        e.target.value = value;
-    }
-});
-
-// Luhn algorithm for card validation
-function luhnCheck(number) {
-    const value = (number || '').replace(/\s+/g, '');
-    let sum = 0;
-    let shouldDouble = false;
-    for (let i = value.length - 1; i >= 0; i--) {
-        let digit = parseInt(value.charAt(i), 10);
-        if (shouldDouble) {
-            digit *= 2;
-            if (digit > 9) digit -= 9;
-        }
-        sum += digit;
-        shouldDouble = !shouldDouble;
-    }
-    return sum % 10 === 0;
-}
-
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = WalletManager;
-}
+window.walletManager = new WalletManager();

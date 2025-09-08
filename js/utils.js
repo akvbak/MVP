@@ -1,45 +1,7 @@
 // SpinX Utility Functions
 class Utils {
-    constructor() {
-        this.currency = 'NGN';
-        this.locale = 'en-NG';
-    }
-
-    // Number and Currency Formatting
-    formatCurrency(amount, currency = this.currency) {
-        return new Intl.NumberFormat(this.locale, {
-            style: 'currency',
-            currency: currency,
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        }).format(amount || 0);
-    }
-
-    formatNumber(number) {
-        return new Intl.NumberFormat(this.locale).format(number || 0);
-    }
-
-    formatPercentage(value, decimals = 1) {
-        return new Intl.NumberFormat(this.locale, {
-            style: 'percent',
-            minimumFractionDigits: decimals,
-            maximumFractionDigits: decimals
-        }).format(value / 100);
-    }
-
-    // Date and Time Formatting
-    formatDate(date, options = {}) {
-        const defaultOptions = {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        };
-        
-        const formatOptions = { ...defaultOptions, ...options };
-        
-        return new Intl.DateTimeFormat(this.locale, formatOptions).format(
-            typeof date === 'string' ? new Date(date) : date
-        );
+    constructor(locale = 'en-US') {
+        this.locale = locale;
     }
 
     formatDateTime(date, options = {}) {
@@ -50,9 +12,9 @@ class Utils {
             hour: '2-digit',
             minute: '2-digit'
         };
-        
+
         const formatOptions = { ...defaultOptions, ...options };
-        
+
         return new Intl.DateTimeFormat(this.locale, formatOptions).format(
             typeof date === 'string' ? new Date(date) : date
         );
@@ -76,276 +38,103 @@ class Utils {
         } else if (diffDays < 7) {
             return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
         } else {
-            return this.formatDate(targetDate);
+            // fallback: use formatDateTime instead of undefined formatDate
+            return this.formatDateTime(targetDate);
         }
     }
 
-    // Validation Functions
+    formatCurrency(amount, currency = 'NGN', locale = 'en-NG') {
+        return new Intl.NumberFormat(locale, {
+            style: 'currency',
+            currency: currency,
+            minimumFractionDigits: 2
+        }).format(amount);
+    }
+
+    formatNumber(number, locale = 'en-NG') {
+        return new Intl.NumberFormat(locale).format(number);
+    }
+
     validateEmail(email) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(email);
     }
 
     validatePhone(phone) {
-        // Nigerian phone number validation
-        const cleanPhone = phone.replace(/\s+/g, '');
-        const phoneRegex = /^(\+234|234|0)?[789][01]\d{8}$/;
-        return phoneRegex.test(cleanPhone);
+        // Remove all non-digit characters
+        const cleaned = phone.replace(/\D/g, '');
+        // Check if it's 10-15 digits (international format)
+        return /^[0-9]{10,15}$/.test(cleaned);
     }
 
     validatePassword(password) {
-        const minLength = 6;
-        const hasLetter = /[a-zA-Z]/.test(password);
-        const hasNumber = /\d/.test(password);
-        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-
-        return {
-            valid: password.length >= minLength && hasLetter && hasNumber,
-            requirements: {
-                minLength: password.length >= minLength,
-                hasLetter,
-                hasNumber,
-                hasSpecial
-            }
-        };
+        // At least 8 characters, 1 uppercase, 1 lowercase, 1 number
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/;
+        return passwordRegex.test(password);
     }
 
-    validateUsername(username) {
-        const minLength = 3;
-        const maxLength = 20;
-        const validChars = /^[a-zA-Z0-9_]+$/;
-
-        return {
-            valid: username.length >= minLength && 
-                   username.length <= maxLength && 
-                   validChars.test(username),
-            requirements: {
-                minLength: username.length >= minLength,
-                maxLength: username.length <= maxLength,
-                validChars: validChars.test(username)
-            }
-        };
-    }
-
-    // String Utilities
-    sanitizeInput(input) {
-        if (typeof input !== 'string') return input;
+    validateCardNumber(cardNumber) {
+        // Luhn algorithm for credit card validation
+        const cleaned = cardNumber.replace(/\D/g, '');
+        if (cleaned.length < 13 || cleaned.length > 19) return false;
         
-        const div = document.createElement('div');
-        div.textContent = input;
-        return div.innerHTML;
-    }
-
-    truncateText(text, maxLength = 50) {
-        if (text.length <= maxLength) return text;
-        return text.substring(0, maxLength - 3) + '...';
-    }
-
-    capitalizeFirst(str) {
-        return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-    }
-
-    camelToTitle(str) {
-        return str
-            .replace(/([A-Z])/g, ' $1')
-            .replace(/^./, (str) => str.toUpperCase())
-            .trim();
-    }
-
-    // URL and Query String Utilities
-    getQueryParam(param) {
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get(param);
-    }
-
-    setQueryParam(param, value) {
-        const url = new URL(window.location);
-        url.searchParams.set(param, value);
-        window.history.pushState({}, '', url);
-    }
-
-    removeQueryParam(param) {
-        const url = new URL(window.location);
-        url.searchParams.delete(param);
-        window.history.pushState({}, '', url);
-    }
-
-    // Local Storage Utilities
-    setStorage(key, value, expiry = null) {
-        const item = {
-            value: value,
-            timestamp: Date.now(),
-            expiry: expiry
-        };
-        localStorage.setItem(key, JSON.stringify(item));
-    }
-
-    getStorage(key) {
-        try {
-            const item = JSON.parse(localStorage.getItem(key));
-            if (!item) return null;
-
-            // Check if item has expired
-            if (item.expiry && Date.now() > item.expiry) {
-                localStorage.removeItem(key);
-                return null;
-            }
-
-            return item.value;
-        } catch (error) {
-            console.error('Error reading from localStorage:', error);
-            return null;
-        }
-    }
-
-    removeStorage(key) {
-        localStorage.removeItem(key);
-    }
-
-    clearExpiredStorage() {
-        const keys = Object.keys(localStorage);
-        keys.forEach(key => {
-            try {
-                const item = JSON.parse(localStorage.getItem(key));
-                if (item && item.expiry && Date.now() > item.expiry) {
-                    localStorage.removeItem(key);
-                }
-            } catch (error) {
-                // Ignore non-JSON items
-            }
-        });
-    }
-
-    // Array and Object Utilities
-    groupBy(array, key) {
-        return array.reduce((groups, item) => {
-            const group = item[key];
-            groups[group] = groups[group] || [];
-            groups[group].push(item);
-            return groups;
-        }, {});
-    }
-
-    sortBy(array, key, direction = 'asc') {
-        return array.sort((a, b) => {
-            const aVal = typeof key === 'function' ? key(a) : a[key];
-            const bVal = typeof key === 'function' ? key(b) : b[key];
+        let sum = 0;
+        let isEven = false;
+        
+        for (let i = cleaned.length - 1; i >= 0; i--) {
+            let digit = parseInt(cleaned[i]);
             
-            if (aVal < bVal) return direction === 'asc' ? -1 : 1;
-            if (aVal > bVal) return direction === 'asc' ? 1 : -1;
-            return 0;
-        });
+            if (isEven) {
+                digit *= 2;
+                if (digit > 9) {
+                    digit -= 9;
+                }
+            }
+            
+            sum += digit;
+            isEven = !isEven;
+        }
+        
+        return sum % 10 === 0;
     }
 
-    deepClone(obj) {
-        return JSON.parse(JSON.stringify(obj));
+    validateExpiryDate(expiry) {
+        const expiryRegex = /^(0[1-9]|1[0-2])\/([0-9]{2})$/;
+        if (!expiryRegex.test(expiry)) return false;
+        
+        const [month, year] = expiry.split('/');
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear() % 100;
+        const currentMonth = currentDate.getMonth() + 1;
+        
+        const expYear = parseInt(year);
+        const expMonth = parseInt(month);
+        
+        if (expYear < currentYear) return false;
+        if (expYear === currentYear && expMonth < currentMonth) return false;
+        
+        return true;
     }
 
-    merge(target, ...sources) {
-        return Object.assign({}, target, ...sources);
+    validateCVV(cvv) {
+        return /^[0-9]{3,4}$/.test(cvv);
     }
 
-    // Random Utilities
-    generateId(length = 8) {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    generateId(prefix = '') {
+        const timestamp = Date.now().toString(36);
+        const random = Math.random().toString(36).substr(2, 5);
+        return prefix + timestamp + random;
+    }
+
+    generateReferralCode() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         let result = '';
-        for (let i = 0; i < length; i++) {
+        for (let i = 0; i < 8; i++) {
             result += chars.charAt(Math.floor(Math.random() * chars.length));
         }
         return result;
     }
 
-    randomBetween(min, max) {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-    }
-
-    randomFloat(min, max, decimals = 2) {
-        const factor = Math.pow(10, decimals);
-        return Math.round((Math.random() * (max - min) + min) * factor) / factor;
-    }
-
-    // Color Utilities
-    hexToRgb(hex) {
-        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        return result ? {
-            r: parseInt(result[1], 16),
-            g: parseInt(result[2], 16),
-            b: parseInt(result[3], 16)
-        } : null;
-    }
-
-    rgbToHex(r, g, b) {
-        return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-    }
-
-    // Device and Browser Detection
-    isMobile() {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    }
-
-    isTablet() {
-        return /iPad|Android/i.test(navigator.userAgent) && window.innerWidth >= 768;
-    }
-
-    isDesktop() {
-        return !this.isMobile() && !this.isTablet();
-    }
-
-    getViewportSize() {
-        return {
-            width: window.innerWidth,
-            height: window.innerHeight
-        };
-    }
-
-    // Animation Utilities
-    easeInOut(t) {
-        return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-    }
-
-    animate(duration, callback, easing = this.easeInOut) {
-        const start = performance.now();
-        
-        function step(timestamp) {
-            const elapsed = timestamp - start;
-            const progress = Math.min(elapsed / duration, 1);
-            const easedProgress = easing(progress);
-            
-            callback(easedProgress);
-            
-            if (progress < 1) {
-                requestAnimationFrame(step);
-            }
-        }
-        
-        requestAnimationFrame(step);
-    }
-
-    // Game Utilities
-    calculateProbability(houseEdge, baseOdds) {
-        return baseOdds * (1 - houseEdge);
-    }
-
-    calculatePayout(betAmount, multiplier, houseEdge = 0) {
-        return Math.floor(betAmount * multiplier * (1 - houseEdge));
-    }
-
-    getRandomGameOutcome(probabilities) {
-        const random = Math.random();
-        let cumulative = 0;
-        
-        for (const [outcome, probability] of Object.entries(probabilities)) {
-            cumulative += probability;
-            if (random <= cumulative) {
-                return outcome;
-            }
-        }
-        
-        // Fallback to last outcome
-        return Object.keys(probabilities).pop();
-    }
-
-    // Performance Utilities
     debounce(func, wait) {
         let timeout;
         return function executedFunction(...args) {
@@ -360,156 +149,184 @@ class Utils {
 
     throttle(func, limit) {
         let inThrottle;
-        return function(...args) {
+        return function() {
+            const args = arguments;
+            const context = this;
             if (!inThrottle) {
-                func.apply(this, args);
+                func.apply(context, args);
                 inThrottle = true;
                 setTimeout(() => inThrottle = false, limit);
             }
         };
     }
 
-    // Error Handling
-    createError(message, code = 'GENERIC_ERROR', details = {}) {
-        const error = new Error(message);
-        error.code = code;
-        error.details = details;
-        error.timestamp = new Date().toISOString();
-        return error;
-    }
-
-    logError(error, context = {}) {
-        console.error('SpinX Error:', {
-            message: error.message,
-            code: error.code,
-            details: error.details,
-            stack: error.stack,
-            context,
-            timestamp: new Date().toISOString()
-        });
-    }
-
-    // CSS Utilities
-    addClass(element, className) {
-        if (element && !element.classList.contains(className)) {
-            element.classList.add(className);
-        }
-    }
-
-    removeClass(element, className) {
-        if (element && element.classList.contains(className)) {
-            element.classList.remove(className);
-        }
-    }
-
-    toggleClass(element, className) {
-        if (element) {
-            element.classList.toggle(className);
-        }
-    }
-
-    // Network Utilities
-    isOnline() {
-        return navigator.onLine;
-    }
-
-    waitForConnection() {
-        return new Promise((resolve) => {
-            if (this.isOnline()) {
-                resolve();
-            } else {
-                const handleOnline = () => {
-                    window.removeEventListener('online', handleOnline);
-                    resolve();
-                };
-                window.addEventListener('online', handleOnline);
-            }
-        });
-    }
-
-    // Image Utilities
-    preloadImage(src) {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => resolve(img);
-            img.onerror = reject;
-            img.src = src;
-        });
-    }
-
-    preloadImages(srcArray) {
-        return Promise.all(srcArray.map(src => this.preloadImage(src)));
-    }
-
-    // File Utilities
-    formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-
-    getFileExtension(filename) {
-        return filename.slice((filename.lastIndexOf('.') - 1 >>> 0) + 2);
-    }
-
-    // Copy to Clipboard
-    async copyToClipboard(text) {
-        try {
-            await navigator.clipboard.writeText(text);
-            return true;
-        } catch (error) {
+    copyToClipboard(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            return navigator.clipboard.writeText(text);
+        } else {
             // Fallback for older browsers
             const textArea = document.createElement('textarea');
             textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
             document.body.appendChild(textArea);
             textArea.focus();
             textArea.select();
-            
-            try {
-                document.execCommand('copy');
+            return new Promise((resolve, reject) => {
+                if (document.execCommand('copy')) {
+                    resolve();
+                } else {
+                    reject();
+                }
                 document.body.removeChild(textArea);
-                return true;
-            } catch (fallbackError) {
-                document.body.removeChild(textArea);
-                return false;
-            }
+            });
         }
     }
 
-    // Download Utilities
-    downloadFile(data, filename, type = 'text/plain') {
-        const blob = new Blob([data], { type });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
+    showNotification(message, type = 'info', duration = 3000) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `
+            <div class="notification-content">
+                <span class="notification-message">${message}</span>
+                <button class="notification-close">&times;</button>
+            </div>
+        `;
+
+        // Add to page
+        document.body.appendChild(notification);
+
+        // Auto remove
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, duration);
+
+        // Manual close
+        notification.querySelector('.notification-close').addEventListener('click', () => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        });
     }
 
-    downloadJSON(data, filename) {
-        const jsonString = JSON.stringify(data, null, 2);
-        this.downloadFile(jsonString, filename, 'application/json');
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 
-    downloadCSV(data, filename) {
-        if (!Array.isArray(data) || data.length === 0) return;
+    sanitizeInput(input) {
+        if (typeof input !== 'string') return input;
+        return input
+            .replace(/[<>]/g, '') // Remove potential HTML tags
+            .replace(/javascript:/gi, '') // Remove javascript: protocol
+            .replace(/on\w+=/gi, '') // Remove event handlers
+            .trim();
+    }
+
+    clearExpiredStorage() {
+        const now = Date.now();
+        const keysToRemove = [];
         
-        const headers = Object.keys(data[0]);
-        const csvContent = [
-            headers.join(','),
-            ...data.map(row => headers.map(header => 
-                JSON.stringify(row[header] || '')
-            ).join(','))
-        ].join('\n');
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('spinx_temp_')) {
+                try {
+                    const data = JSON.parse(localStorage.getItem(key));
+                    if (data.expiry && data.expiry < now) {
+                        keysToRemove.push(key);
+                    }
+                } catch (e) {
+                    // If we can't parse it, remove it
+                    keysToRemove.push(key);
+                }
+            }
+        }
         
-        this.downloadFile(csvContent, filename, 'text/csv');
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+    }
+
+    setTemporaryStorage(key, value, expiryMinutes = 60) {
+        const data = {
+            value: value,
+            expiry: Date.now() + (expiryMinutes * 60 * 1000)
+        };
+        localStorage.setItem(`spinx_temp_${key}`, JSON.stringify(data));
+    }
+
+    getTemporaryStorage(key) {
+        try {
+            const data = JSON.parse(localStorage.getItem(`spinx_temp_${key}`));
+            if (data && data.expiry && data.expiry > Date.now()) {
+                return data.value;
+            } else {
+                localStorage.removeItem(`spinx_temp_${key}`);
+                return null;
+            }
+        } catch (e) {
+            localStorage.removeItem(`spinx_temp_${key}`);
+            return null;
+        }
+    }
+
+    isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+
+    isTouchDevice() {
+        return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    }
+
+    getRandomColor() {
+        const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff'];
+        return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; // Radius of the Earth in kilometers
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+
+    formatBytes(bytes, decimals = 2) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    retry(fn, retries = 3, delay = 1000) {
+        return new Promise((resolve, reject) => {
+            const attempt = (attemptNumber) => {
+                fn()
+                    .then(resolve)
+                    .catch((error) => {
+                        if (attemptNumber < retries) {
+                            setTimeout(() => attempt(attemptNumber + 1), delay);
+                        } else {
+                            reject(error);
+                        }
+                    });
+            };
+            attempt(1);
+        });
     }
 }
 
@@ -521,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.utils.clearExpiredStorage();
 });
 
-// Export for use in other modules
+// Export for Node/CommonJS
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = Utils;
 }

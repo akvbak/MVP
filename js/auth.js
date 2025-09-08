@@ -305,7 +305,7 @@ class AuthManager {
     }
 
     updateUserBalance(userId, amount, type, description, reference = null) {
-        const user = this.users[userId];
+        let user = this.users[userId];
         if (!user) return false;
 
         const oldBalance = user.balance;
@@ -341,7 +341,9 @@ class AuthManager {
 
         this.saveUsersToStorage();
 
-        // Update current user if it's the same user
+        // Always re-fetch the user from storage and update all references
+        const usersFromStorage = this.loadUsersFromStorage();
+        user = usersFromStorage[userId];
         if (this.currentUser && this.currentUser.id === userId) {
             this.currentUser = this.sanitizeUser(user);
             localStorage.setItem('spinx_user', JSON.stringify(this.currentUser));

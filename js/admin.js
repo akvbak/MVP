@@ -4,7 +4,37 @@ class AdminManager {
         this.isAdminAuthenticated = false;
         this.adminUser = null;
         this.currentSection = 'dashboard';
-        this.settings = this.loadSettings();
+        // Always robustly seed settings before using
+        let settings = localStorage.getItem('spinx_admin_settings');
+        let parsed = null;
+        try {
+            parsed = settings ? JSON.parse(settings) : null;
+        } catch (e) {
+            console.warn('Failed to parse spinx_admin_settings:', e);
+        }
+        if (!parsed || typeof parsed.platformName === 'undefined') {
+            parsed = {
+                platformName: 'SpinX',
+                supportEmail: 'support@spinx.com',
+                minWithdrawal: 1000,
+                transactionFee: 3,
+                maintenanceMode: false,
+                sessionTimeout: 30,
+                maxLoginAttempts: 5,
+                lockoutDuration: 15,
+                requireKyc: true,
+                twoFactorAuth: false,
+                referralBonus: 500,
+                maxReferrals: 100,
+                referralMinDeposit: 1000,
+                referralEnabled: true
+            };
+            localStorage.setItem('spinx_admin_settings', JSON.stringify(parsed));
+            console.log('Default admin settings seeded:', parsed);
+        } else {
+            console.log('Loaded admin settings:', parsed);
+        }
+        this.settings = parsed;
         this.init();
     }
 
@@ -22,23 +52,36 @@ class AdminManager {
         }, 5000);
     }
     loadSettings() {
-        const settings = localStorage.getItem('spinx_admin_settings');
-        return settings ? JSON.parse(settings) : {
-            platformName: 'SpinX',
-            supportEmail: 'support@spinx.com',
-            minWithdrawal: 1000,
-            transactionFee: 3,
-            maintenanceMode: false,
-            sessionTimeout: 30,
-            maxLoginAttempts: 5,
-            lockoutDuration: 15,
-            requireKyc: true,
-            twoFactorAuth: false,
-            referralBonus: 500,
-            maxReferrals: 100,
-            referralMinDeposit: 1000,
-            referralEnabled: true
-        };
+        let settings = localStorage.getItem('spinx_admin_settings');
+        let parsed = null;
+        try {
+            parsed = settings ? JSON.parse(settings) : null;
+        } catch (e) {
+            console.warn('Failed to parse spinx_admin_settings:', e);
+        }
+        if (!parsed || typeof parsed.platformName === 'undefined') {
+            parsed = {
+                platformName: 'SpinX',
+                supportEmail: 'support@spinx.com',
+                minWithdrawal: 1000,
+                transactionFee: 3,
+                maintenanceMode: false,
+                sessionTimeout: 30,
+                maxLoginAttempts: 5,
+                lockoutDuration: 15,
+                requireKyc: true,
+                twoFactorAuth: false,
+                referralBonus: 500,
+                maxReferrals: 100,
+                referralMinDeposit: 1000,
+                referralEnabled: true
+            };
+            localStorage.setItem('spinx_admin_settings', JSON.stringify(parsed));
+            console.log('Default admin settings seeded:', parsed);
+        } else {
+            console.log('Loaded admin settings:', parsed);
+        }
+        return parsed;
     }
 
     saveSettings() {
@@ -61,8 +104,9 @@ class AdminManager {
     }
 
     showAdminLogin() {
+        console.log('Injecting admin login overlay...');
         const loginHtml = `
-            <div class="admin-login-overlay">
+            <div class="admin-login-overlay" style="display:flex !important; z-index:99999;">
                 <div class="admin-login-modal">
                     <h2>Admin Login</h2>
                     <form id="admin-login-form" onsubmit="adminManager.handleAdminLogin(event)">
@@ -74,12 +118,15 @@ class AdminManager {
                         </div>
                         <button type="submit" class="btn-primary">Login</button>
                     </form>
-                    <p class="demo-credentials">Demo: admin@kekeli / admin123</p>
+                    <p class="demo-credentials">Demo: admin / admin123</p>
                 </div>
             </div>
         `;
-        
         document.body.insertAdjacentHTML('beforeend', loginHtml);
+        setTimeout(() => {
+            const overlay = document.querySelector('.admin-login-overlay');
+            if (overlay) overlay.style.display = 'flex';
+        }, 100);
     }
 
     handleAdminLogin(event) {
@@ -89,21 +136,27 @@ class AdminManager {
         const password = document.getElementById('admin-password').value;
         
         // Demo credentials - normalize username
-        if (username.trim().toLowerCase() === 'admin@kekeli' && password === 'admin123') {
+        if (username.trim().toLowerCase() === 'admin' && password === 'admin123') {
             this.adminUser = {
                 id: 'admin_1',
-                username: 'admin@kekeli',
+                username: 'admin',
                 role: 'super_admin',
                 lastLogin: new Date().toISOString()
             };
-            
+
             localStorage.setItem('spinx_admin_user', JSON.stringify(this.adminUser));
             this.isAdminAuthenticated = true;
-            
+
             // Remove login overlay
             const overlay = document.querySelector('.admin-login-overlay');
             if (overlay) overlay.remove();
-            
+
+            // Show sidebar and main content
+            const sidebar = document.querySelector('.admin-sidebar');
+            const main = document.querySelector('.admin-main');
+            if (sidebar) sidebar.style.display = 'block';
+            if (main) main.style.display = 'block';
+
             // Initialize admin panel
             this.updateDashboard();
             this.showToast('Admin login successful', 'success');
@@ -194,6 +247,25 @@ class AdminManager {
     }
 
     loadSectionData(sectionName) {
+        // Ensure demo data is loaded if managers are not ready
+        if (!window.authManager) {
+            window.authManager = {
+                getAllUsers: function() {
+                    const users = localStorage.getItem('spinx_users');
+                    console.log('Loaded users from localStorage:', users);
+                    return users ? Object.values(JSON.parse(users)) : [];
+                }
+            };
+        }
+        if (!window.walletManager) {
+            window.walletManager = {
+                getAllWithdrawals: function() {
+                    const withdrawals = localStorage.getItem('spinx_withdrawals');
+                    console.log('Loaded withdrawals from localStorage:', withdrawals);
+                    return withdrawals ? JSON.parse(withdrawals) : [];
+                }
+            };
+        }
         switch (sectionName) {
             case 'dashboard':
                 this.updateDashboard();
@@ -231,38 +303,42 @@ class AdminManager {
         const users = window.authManager.getAllUsers();
         const withdrawals = window.walletManager ? window.walletManager.getAllWithdrawals() : [];
         
-        // Update summary stats
-        document.getElementById('total-users').textContent = users.length;
-        
-        const totalRevenue = users.reduce((sum, user) => sum + (user.totalDeposits || 0), 0);
-        document.getElementById('total-revenue').textContent = this.formatCurrency(totalRevenue);
-        
-        const gamesPlayed = users.reduce((sum, user) => sum + (user.gamesPlayed || 0), 0);
-        document.getElementById('games-played').textContent = gamesPlayed;
-        
-        const pendingWithdrawals = withdrawals.filter(w => w.status === 'pending').length;
-        document.getElementById('pending-withdrawals').textContent = pendingWithdrawals;
-        
-        // Update game stats
-        this.updateGameStats(users);
-        
-        // Load recent activity
-        this.loadRecentActivity();
+    // Update summary stats
+    const totalUsersEl = document.getElementById('total-users');
+    if (totalUsersEl) totalUsersEl.textContent = users.length;
+
+    const totalRevenue = users.reduce((sum, user) => sum + (user.totalDeposits || 0), 0);
+    const totalRevenueEl = document.getElementById('total-revenue');
+    if (totalRevenueEl) totalRevenueEl.textContent = this.formatCurrency(totalRevenue);
+
+    const gamesPlayed = users.reduce((sum, user) => sum + (user.gamesPlayed || 0), 0);
+    const gamesPlayedEl = document.getElementById('games-played');
+    if (gamesPlayedEl) gamesPlayedEl.textContent = gamesPlayed;
+
+    const pendingWithdrawals = withdrawals.filter(w => w.status === 'pending').length;
+    const pendingWithdrawalsEl = document.getElementById('pending-withdrawals');
+    if (pendingWithdrawalsEl) pendingWithdrawalsEl.textContent = pendingWithdrawals;
+
+    // Update game stats
+    this.updateGameStats(users);
+
+    // Load recent activity
+    this.loadRecentActivity();
     }
 
     updateGameStats(users) {
         // For demo purposes, generate some stats
-        const wheelPlays = Math.floor(Math.random() * 1000) + 500;
+        const coinPlays = Math.floor(Math.random() * 1000) + 500;
         const dicePlays = Math.floor(Math.random() * 800) + 300;
-        const minesPlays = Math.floor(Math.random() * 600) + 200;
+        const luckyPlays = Math.floor(Math.random() * 600) + 200;
         
-        const wheelElement = document.getElementById('wheel-plays');
+        const coinElement = document.getElementById('coin-plays');
         const diceElement = document.getElementById('dice-plays');
-        const minesElement = document.getElementById('mines-plays');
+        const luckyElement = document.getElementById('lucky-plays');
         
-        if (wheelElement) wheelElement.textContent = wheelPlays;
+        if (coinElement) coinElement.textContent = coinPlays;
         if (diceElement) diceElement.textContent = dicePlays;
-        if (minesElement) minesElement.textContent = minesPlays;
+        if (luckyElement) luckyElement.textContent = luckyPlays;
     }
 
     loadRecentActivity() {
@@ -502,17 +578,15 @@ class AdminManager {
     }
 
     populateGameSettingsForms() {
-        // Populate wheel settings
+        // Populate coin settings
         if (window.app && window.app.gameSettings) {
-            const wheelSettings = window.app.gameSettings.wheel;
-            if (wheelSettings) {
-                this.setFormValue('wheel-house-edge', wheelSettings.houseEdge);
-                this.setFormValue('wheel-min-bet', wheelSettings.minBet);
-                this.setFormValue('wheel-max-bet', wheelSettings.maxBet);
-                this.setFormValue('wheel-red-multiplier', wheelSettings.multipliers?.red || 2);
-                this.setFormValue('wheel-yellow-multiplier', wheelSettings.multipliers?.yellow || 5);
-                this.setFormValue('wheel-blue-multiplier', wheelSettings.multipliers?.blue || 10);
-                this.setFormValue('wheel-enabled', wheelSettings.enabled);
+            const coinSettings = window.app.gameSettings.coin;
+            if (coinSettings) {
+                this.setFormValue('coin-house-edge', coinSettings.houseEdge);
+                this.setFormValue('coin-min-bet', coinSettings.minBet);
+                this.setFormValue('coin-max-bet', coinSettings.maxBet);
+                this.setFormValue('coin-multiplier', coinSettings.multiplier || 2);
+                this.setFormValue('coin-enabled', coinSettings.enabled);
             }
             
             // Populate dice settings
@@ -521,20 +595,19 @@ class AdminManager {
                 this.setFormValue('dice-house-edge', diceSettings.houseEdge);
                 this.setFormValue('dice-min-bet', diceSettings.minBet);
                 this.setFormValue('dice-max-bet', diceSettings.maxBet);
-                this.setFormValue('dice-even-odd-multiplier', diceSettings.evenOddMultiplier);
-                this.setFormValue('dice-specific-multiplier', diceSettings.specificMultiplier);
+                this.setFormValue('dice-even-odd-multiplier', diceSettings.payouts?.even || 2);
+                this.setFormValue('dice-specific-multiplier', diceSettings.payouts?.specific || 6);
                 this.setFormValue('dice-enabled', diceSettings.enabled);
             }
             
-            // Populate mines settings
-            const minesSettings = window.app.gameSettings.mines;
-            if (minesSettings) {
-                this.setFormValue('mines-house-edge', minesSettings.houseEdge);
-                this.setFormValue('mines-min-bet', minesSettings.minBet);
-                this.setFormValue('mines-max-bet', minesSettings.maxBet);
-                this.setFormValue('mines-grid-size', minesSettings.gridSize);
-                this.setFormValue('mines-max-mines', minesSettings.maxMines);
-                this.setFormValue('mines-enabled', minesSettings.enabled);
+            // Populate lucky settings
+            const luckySettings = window.app.gameSettings.lucky;
+            if (luckySettings) {
+                this.setFormValue('lucky-house-edge', luckySettings.houseEdge);
+                this.setFormValue('lucky-min-bet', luckySettings.minBet);
+                this.setFormValue('lucky-max-bet', luckySettings.maxBet);
+                this.setFormValue('lucky-multiplier', luckySettings.multiplier || 10);
+                this.setFormValue('lucky-enabled', luckySettings.enabled);
             }
         }
     }

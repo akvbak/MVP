@@ -38,12 +38,17 @@ class SpinXApp {
     }
 
     init() {
-        this.loadStoredData();
-        this.setupEventListeners();
-        this.updateUI();
-        this.loadLeaderboard();
-        this.loadTransactions();
-        this.checkAuthStatus();
+        try {
+            this.loadStoredData();
+            this.setupEventListeners();
+            this.updateUI();
+            this.loadLeaderboard();
+            this.loadTransactions();
+            this.checkAuthStatus();
+        } catch (error) {
+            console.error('Error initializing SpinX app:', error);
+            this.showToast('Failed to initialize application. Please refresh the page.', 'error');
+        }
     }
 
     loadStoredData() {
@@ -174,7 +179,10 @@ class SpinXApp {
     updateSectionContent(sectionName) {
         switch (sectionName) {
             case 'wallet':
-                this.updateWalletContent();
+                if (window.walletManager && typeof window.walletManager.updateWalletUI === 'function') {
+                    window.walletManager.updateWalletUI();
+                }
+                this.updateWalletContent && this.updateWalletContent();
                 break;
             case 'leaderboard':
                 this.updateLeaderboardContent();
@@ -229,6 +237,10 @@ class SpinXApp {
         this.updateBalance();
         this.updateAuthButtons();
         this.updateNavigationVisibility();
+        // Also update the in-game balance display if a game is loaded
+        if (window.gameManager && typeof window.gameManager.updateGameBalanceDisplay === 'function') {
+            window.gameManager.updateGameBalanceDisplay();
+        }
     }
 
     updateBalance() {
@@ -303,55 +315,97 @@ class SpinXApp {
 
     // Convert from base (NGN) to display currency
     convertFromBase(amountNGN) {
-        const rate = this.currencyRatesNGN[this.selectedCurrency] || 1;
-        return (amountNGN || 0) / rate;
+        try {
+            const rate = this.currencyRatesNGN[this.selectedCurrency] || 1;
+            if (rate <= 0) {
+                console.warn('Invalid currency rate:', rate);
+                return 0;
+            }
+            return (amountNGN || 0) / rate;
+        } catch (error) {
+            console.error('Error converting from base currency:', error);
+            return 0;
+        }
     }
 
     // Convert from display currency to base (NGN)
     convertToBase(amountDisplay) {
-        const rate = this.currencyRatesNGN[this.selectedCurrency] || 1;
-        return Math.round((amountDisplay || 0) * rate);
+        try {
+            const rate = this.currencyRatesNGN[this.selectedCurrency] || 1;
+            if (rate <= 0) {
+                console.warn('Invalid currency rate:', rate);
+                return 0;
+            }
+            return Math.round((amountDisplay || 0) * rate);
+        } catch (error) {
+            console.error('Error converting to base currency:', error);
+            return 0;
+        }
     }
 
     showToast(message, type = 'info', duration = 3000) {
-        const toast = document.getElementById('toast');
-        const toastIcon = toast.querySelector('.toast-icon');
-        const toastMessage = toast.querySelector('.toast-message');
+        try {
+            const toast = document.getElementById('toast');
+            if (!toast) {
+                console.warn('Toast element not found');
+                return;
+            }
+            
+            const toastIcon = toast.querySelector('.toast-icon');
+            const toastMessage = toast.querySelector('.toast-message');
+            
+            if (!toastMessage) {
+                console.warn('Toast message element not found');
+                return;
+            }
 
-        // Set message
-        toastMessage.textContent = message;
+            // Set message
+            toastMessage.textContent = message;
 
-        // Set icon based on type
-        const icons = {
-            success: 'fas fa-check-circle',
-            error: 'fas fa-exclamation-circle',
-            warning: 'fas fa-exclamation-triangle',
-            info: 'fas fa-info-circle'
-        };
+            // Set icon based on type
+            const icons = {
+                success: 'fas fa-check-circle',
+                error: 'fas fa-exclamation-circle',
+                warning: 'fas fa-exclamation-triangle',
+                info: 'fas fa-info-circle'
+            };
 
-        toastIcon.className = `toast-icon ${icons[type] || icons.info}`;
-        toast.className = `toast ${type}`;
+            if (toastIcon) {
+                toastIcon.className = `toast-icon ${icons[type] || icons.info}`;
+            }
+            toast.className = `toast ${type}`;
 
-        // Show toast
-        toast.classList.add('show');
+            // Show toast
+            toast.classList.add('show');
 
-        // Auto hide
-        setTimeout(() => {
-            toast.classList.remove('show');
-        }, duration);
+            // Auto hide
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, duration);
+        } catch (error) {
+            console.error('Error showing toast:', error);
+        }
     }
 
     showLoading() {
-        const loading = document.getElementById('loading');
-        if (loading) {
-            loading.classList.remove('hidden');
+        try {
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('Error showing loading:', error);
         }
     }
 
     hideLoading() {
-        const loading = document.getElementById('loading');
-        if (loading) {
-            loading.classList.add('hidden');
+        try {
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.classList.add('hidden');
+            }
+        } catch (error) {
+            console.error('Error hiding loading:', error);
         }
     }
 
@@ -573,8 +627,11 @@ class SpinXApp {
             this.openAuthModal('login');
             return;
         }
-
-        // Load game content
+        // Only allow new games
+        if (!["coin", "dice", "lucky"].includes(gameType)) {
+            this.showToast('Invalid game selected', 'error');
+            return;
+        }
         window.gameManager.openGame(gameType);
     }
 
@@ -735,9 +792,40 @@ function closeModal(modalId) {
     window.app.closeModal(modalId);
 }
 
+// Global error handler
+window.addEventListener('error', (event) => {
+    console.error('Global error:', event.error);
+    if (window.app && typeof window.app.showToast === 'function') {
+        window.app.showToast('An unexpected error occurred. Please try again.', 'error');
+    }
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('Unhandled promise rejection:', event.reason);
+    if (window.app && typeof window.app.showToast === 'function') {
+        window.app.showToast('An unexpected error occurred. Please try again.', 'error');
+    }
+});
+
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.app = new SpinXApp();
+    try {
+        window.app = new SpinXApp();
+    } catch (error) {
+        console.error('Failed to initialize SpinX app:', error);
+        // Show a basic error message if the app fails to initialize
+        document.body.innerHTML = `
+            <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; font-family: Arial, sans-serif;">
+                <h1 style="color: #ff6b6b; margin-bottom: 1rem;">SpinX</h1>
+                <p style="color: #666; text-align: center; max-width: 400px;">
+                    Failed to load the application. Please refresh the page or check your internet connection.
+                </p>
+                <button onclick="location.reload()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #4ecdc4; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    Refresh Page
+                </button>
+            </div>
+        `;
+    }
 });
 
 // Export for use in other modules

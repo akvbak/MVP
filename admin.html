@@ -1,6 +1,98 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script>
+    // Always clear admin authentication for testing so login form shows
+    localStorage.removeItem('spinx_admin_user');
+    // Seed demo users, withdrawals, and admin settings for admin panel testing
+    function seedDemoData() {
+        // Demo users
+        const demoUsers = {
+            'user_1': {
+                id: 'user_1',
+                username: 'john_doe',
+                email: 'john@example.com',
+                phone: '08012345678',
+                balance: 50000,
+                kycStatus: 'verified',
+                createdAt: new Date(Date.now() - 86400000 * 10).toISOString(),
+                isActive: true,
+                gamesPlayed: 25,
+                transactions: [
+                    { id: 'txn_1', type: 'deposit', amount: 30000, status: 'completed', date: new Date(Date.now() - 86400000 * 9).toISOString(), reference: 'DEP_001' },
+                    { id: 'txn_2', type: 'withdrawal', amount: -10000, status: 'completed', date: new Date(Date.now() - 86400000 * 5).toISOString(), reference: 'WDR_001' }
+                ],
+                kycData: { fullName: 'John Doe', idType: 'National ID', idNumber: 'A1234567', submittedAt: new Date(Date.now() - 86400000 * 11).toISOString() },
+                pendingReferrals: [
+                    { userId: 'user_2', username: 'jane_doe', bonusAmount: 500, activated: true, registeredAt: new Date(Date.now() - 86400000 * 8).toISOString() }
+                ],
+                lastLogin: new Date(Date.now() - 86400000 * 1).toISOString()
+            },
+            'user_2': {
+                id: 'user_2',
+                username: 'jane_doe',
+                email: 'jane@example.com',
+                phone: '08087654321',
+                balance: 25000,
+                kycStatus: 'pending',
+                createdAt: new Date(Date.now() - 86400000 * 20).toISOString(),
+                isActive: true,
+                gamesPlayed: 10,
+                transactions: [
+                    { id: 'txn_3', type: 'deposit', amount: 20000, status: 'completed', date: new Date(Date.now() - 86400000 * 19).toISOString(), reference: 'DEP_002' }
+                ],
+                kycData: { fullName: 'Jane Doe', idType: 'Driver License', idNumber: 'B7654321', submittedAt: new Date(Date.now() - 86400000 * 18).toISOString() },
+                pendingReferrals: [],
+                lastLogin: new Date(Date.now() - 86400000 * 2).toISOString()
+            }
+        };
+        localStorage.setItem('spinx_users', JSON.stringify(demoUsers));
+
+        // Demo withdrawals
+        const demoWithdrawals = [
+            {
+                id: 'wdr_1',
+                username: 'john_doe',
+                amount: 10000,
+                method: 'bank',
+                accountDetails: { bank: 'GTBank', accountNumber: '0123456789' },
+                status: 'completed',
+                date: new Date(Date.now() - 86400000 * 5).toISOString()
+            },
+            {
+                id: 'wdr_2',
+                username: 'jane_doe',
+                amount: 5000,
+                method: 'mobile-money',
+                accountDetails: { network: 'MTN', phone: '08087654321' },
+                status: 'pending',
+                date: new Date(Date.now() - 86400000 * 2).toISOString()
+            }
+        ];
+        localStorage.setItem('spinx_withdrawals', JSON.stringify(demoWithdrawals));
+
+        // Demo admin settings
+        const demoSettings = {
+            platformName: 'SpinX',
+            supportEmail: 'support@spinx.com',
+            minWithdrawal: 1000,
+            transactionFee: 3,
+            maintenanceMode: false,
+            sessionTimeout: 30,
+            maxLoginAttempts: 5,
+            lockoutDuration: 15,
+            requireKyc: true,
+            twoFactorAuth: false,
+            referralBonus: 500,
+            maxReferrals: 100,
+            referralMinDeposit: 1000,
+            referralEnabled: true
+        };
+        localStorage.setItem('spinx_admin_settings', JSON.stringify(demoSettings));
+    }
+    // Always seed demo data for testing
+    seedDemoData();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SpinX Admin Panel</title>
@@ -9,24 +101,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="admin-body">
-    <!-- Admin Login Modal -->
-    <div id="admin-login-modal" class="modal" style="display:flex;">
-        <div class="modal-content" style="max-width:350px;">
-            <h2>Admin Login</h2>
-            <form id="admin-login-form">
-                <div class="form-group">
-                    <label for="admin-username">Username</label>
-                    <input type="text" id="admin-username" required>
-                </div>
-                <div class="form-group">
-                    <label for="admin-password">Password</label>
-                    <input type="password" id="admin-password" required>
-                </div>
-                <button type="submit" class="btn-primary" style="width:100%;">Login</button>
-            </form>
-            <div id="admin-login-error" style="color:red; margin-top:10px; display:none;"></div>
-        </div>
-    </div>
+    <!-- Admin Login Modal will be injected by JS -->
 
     <!-- Admin Sidebar -->
     <div class="admin-sidebar" style="display:none;">
@@ -94,76 +169,58 @@
                         <i class="fas fa-money-bill-wave"></i>
                         <div class="stat-content">
                             <span class="stat-number" id="total-revenue">₦0</span>
-                            <!-- Admin Login Overlay (will be injected by JS if not authenticated) -->
-                            <!-- Admin Sidebar (hidden until authenticated) -->
-                            <div class="admin-sidebar" style="display:none;">
-                                <!-- ...existing code... -->
-                                <div class="admin-main" style="display:none;">
-                                    <img src="img/spinxlogo.png" alt="SpinX Logo" class="logo-img">
-                                    <span class="logo-text">SpinX Admin</span>
-                                </div>
-                                <nav class="admin-nav">
-                                    <ul>
-                                        <li><a href="#dashboard" class="nav-link active" onclick="showAdminSection('dashboard')">
-                                            <button class="btn-logout-admin" id="admin-logout-btn">Logout</button>
-                                        </a></li>
-                                        <li><a href="#users" class="nav-link" onclick="showAdminSection('users')">
-                                            <i class="fas fa-users"></i> Users
-                                        </a></li>
-                                <!-- Admin Login Modal -->
-                                <div id="admin-login-modal" class="modal" style="display:flex;">
-                                    <div class="modal-content" style="max-width:350px;">
-                                        <h2>Admin Login</h2>
-                                        <form id="admin-login-form">
-                                            <div class="form-group">
-                                                <label for="admin-username">Username</label>
-                                                <input type="text" id="admin-username" required>
-                                            </div>
-                                            <div class="form-group">
-                                                <label for="admin-password">Password</label>
-                                                <input type="password" id="admin-password" required>
-                                            </div>
-                                            <button type="submit" class="btn-primary" style="width:100%;">Login</button>
-                                        </form>
-                                        <div id="admin-login-error" style="color:red; margin-top:10px; display:none;"></div>
-                                    </div>
-                                </div>
-                                        <li><a href="#kyc" class="nav-link" onclick="showAdminSection('kyc')">
-                                            <i class="fas fa-id-card"></i> KYC Requests
-                                        </a></li>
-                                        <li><a href="#transactions" class="nav-link" onclick="showAdminSection('transactions')">
-                                            <i class="fas fa-money-bill-wave"></i> Transactions
-                                        </a></li>
-                                        <li><a href="#withdrawals" class="nav-link" onclick="showAdminSection('withdrawals')">
-                                            <i class="fas fa-arrow-up"></i> Withdrawals
-                                        </a></li>
-                                        <li><a href="#games" class="nav-link" onclick="showAdminSection('games')">
-                                            <i class="fas fa-gamepad"></i> Game Settings
-                                        </a></li>
-                                        <li><a href="#referrals" class="nav-link" onclick="showAdminSection('referrals')">
-                                            <i class="fas fa-share-alt"></i> Referrals
-                                        </a></li>
-                                        <li><a href="#analytics" class="nav-link" onclick="showAdminSection('analytics')">
-                                            <i class="fas fa-chart-line"></i> Analytics
-                                        </a></li>
-                                        <li><a href="#settings" class="nav-link" onclick="showAdminSection('settings')">
-                                            <i class="fas fa-cog"></i> Settings
-                                        </a></li>
-                                    </ul>
-                                </nav>
-                                <div class="admin-user">
-                                    <div class="admin-avatar">
-                                        <i class="fas fa-user-shield"></i>
-                                    </div>
-                                    <div class="admin-info">
-                                        <span class="admin-name">Admin User</span>
-                                        <button class="btn-logout-admin" id="admin-logout-btn">Logout</button>
-                                    </div>
-                                </div>
-                            </div>
+                            <span class="stat-label">Total Revenue</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-gamepad"></i>
+                        <div class="stat-content">
+                            <span class="stat-number" id="games-played">0</span>
+                            <span class="stat-label">Games Played</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-clock"></i>
+                        <div class="stat-content">
+                            <span class="stat-number" id="pending-withdrawals">0</span>
+                            <span class="stat-label">Pending Withdrawals</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                            <!-- Admin Main Content (hidden until authenticated) -->
-                            <div class="admin-main" style="display:none;">
+            <div class="dashboard-content">
+                <div class="dashboard-row">
+                    <div class="dashboard-card">
+                        <h3>Game Statistics</h3>
+                        <div class="game-stats">
+                            <div class="game-stat">
+                                <span class="game-name">Coin Toss</span>
+                                <span class="game-plays" id="coin-plays">0</span>
+                            </div>
+                            <div class="game-stat">
+                                <span class="game-name">Dice Roll</span>
+                                <span class="game-plays" id="dice-plays">0</span>
+                            </div>
+                            <div class="game-stat">
+                                <span class="game-name">Lucky Number</span>
+                                <span class="game-plays" id="lucky-plays">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3>Recent Activity</h3>
+                        <div class="recent-activity" id="recent-activity">
+                            <!-- Recent activity will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Users Section -->
+        <section id="users-section" class="admin-section">
+            <div class="admin-header">
                 <h1>User Management</h1>
                 <div class="admin-actions">
                     <input type="text" id="user-search" placeholder="Search users..." class="search-input">
@@ -181,7 +238,7 @@
                             <th>Phone</th>
                             <th>Balance</th>
                             <th>KYC Status</th>
-                            <th>Registration Date</th>
+                            <th>Registered</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -292,37 +349,29 @@
             </div>
 
             <div class="game-settings-grid">
-                <!-- Spin the Wheel Settings -->
+                <!-- Coin Toss Settings -->
                 <div class="game-setting-card">
-                    <h3>Spin the Wheel</h3>
-                    <form id="wheel-settings-form" onsubmit="updateGameSettings(event, 'wheel')">
+                    <h3>Coin Toss</h3>
+                    <form id="coin-settings-form" onsubmit="updateGameSettings(event, 'coin')">
                         <div class="form-group">
                             <label>House Edge (%)</label>
-                            <input type="number" id="wheel-house-edge" value="5" min="0" max="50" step="0.1">
+                            <input type="number" id="coin-house-edge" value="2" min="0" max="50" step="0.1">
                         </div>
                         <div class="form-group">
                             <label>Min Bet Amount</label>
-                            <input type="number" id="wheel-min-bet" value="10" min="1">
+                            <input type="number" id="coin-min-bet" value="10" min="1">
                         </div>
                         <div class="form-group">
                             <label>Max Bet Amount</label>
-                            <input type="number" id="wheel-max-bet" value="100000" min="1">
+                            <input type="number" id="coin-max-bet" value="100000" min="1">
                         </div>
                         <div class="form-group">
-                            <label>Red Multiplier</label>
-                            <input type="number" id="wheel-red-multiplier" value="2" min="1" step="0.1">
-                        </div>
-                        <div class="form-group">
-                            <label>Yellow Multiplier</label>
-                            <input type="number" id="wheel-yellow-multiplier" value="5" min="1" step="0.1">
-                        </div>
-                        <div class="form-group">
-                            <label>Blue Multiplier</label>
-                            <input type="number" id="wheel-blue-multiplier" value="10" min="1" step="0.1">
+                            <label>Win Multiplier</label>
+                            <input type="number" id="coin-multiplier" value="2" min="1" step="0.1">
                         </div>
                         <div class="form-group">
                             <label>
-                                <input type="checkbox" id="wheel-enabled" checked> Game Enabled
+                                <input type="checkbox" id="coin-enabled" checked> Game Enabled
                             </label>
                         </div>
                         <button type="submit" class="btn-primary">Update Settings</button>
@@ -362,37 +411,29 @@
                     </form>
                 </div>
 
-                <!-- Mines Settings -->
+                <!-- Lucky Number Settings -->
                 <div class="game-setting-card">
-                    <h3>Mines</h3>
-                    <form id="mines-settings-form" onsubmit="updateGameSettings(event, 'mines')">
+                    <h3>Lucky Number</h3>
+                    <form id="lucky-settings-form" onsubmit="updateGameSettings(event, 'lucky')">
                         <div class="form-group">
                             <label>House Edge (%)</label>
-                            <input type="number" id="mines-house-edge" value="5" min="0" max="50" step="0.1">
+                            <input type="number" id="lucky-house-edge" value="8" min="0" max="50" step="0.1">
                         </div>
                         <div class="form-group">
                             <label>Min Bet Amount</label>
-                            <input type="number" id="mines-min-bet" value="10" min="1">
+                            <input type="number" id="lucky-min-bet" value="10" min="1">
                         </div>
                         <div class="form-group">
                             <label>Max Bet Amount</label>
-                            <input type="number" id="mines-max-bet" value="100000" min="1">
+                            <input type="number" id="lucky-max-bet" value="100000" min="1">
                         </div>
                         <div class="form-group">
-                            <label>Grid Size</label>
-                            <select id="mines-grid-size">
-                                <option value="5">5x5</option>
-                                <option value="6">6x6</option>
-                                <option value="7">7x7</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Max Mines</label>
-                            <input type="number" id="mines-max-mines" value="12" min="1" max="20">
+                            <label>Win Multiplier</label>
+                            <input type="number" id="lucky-multiplier" value="10" min="1" step="0.1">
                         </div>
                         <div class="form-group">
                             <label>
-                                <input type="checkbox" id="mines-enabled" checked> Game Enabled
+                                <input type="checkbox" id="lucky-enabled" checked> Game Enabled
                             </label>
                         </div>
                         <button type="submit" class="btn-primary">Update Settings</button>
@@ -620,77 +661,10 @@
         </div>
     </div>
 
+    <script src="js/auth.js"></script>
+    <script src="js/wallet.js"></script>
+    <script src="js/app.js"></script>
     <script src="js/admin.js"></script>
     <script src="js/utils.js"></script>
-    <script>
-    let adminSessionTimeout;
-    function showAdminLogin() {
-        document.getElementById('admin-login-modal').style.display = 'flex';
-        document.querySelector('.admin-sidebar').style.display = 'none';
-        document.querySelector('.admin-main').style.display = 'none';
-    }
-    function hideAdminLogin() {
-        document.getElementById('admin-login-modal').style.display = 'none';
-        document.querySelector('.admin-sidebar').style.display = '';
-        document.querySelector('.admin-main').style.display = '';
-    }
-    function adminLogout() {
-        showAdminLogin();
-        clearTimeout(adminSessionTimeout);
-        sessionStorage.removeItem('adminAuthenticated');
-    }
-    function resetSessionTimeout() {
-        clearTimeout(adminSessionTimeout);
-        adminSessionTimeout = setTimeout(() => {
-            adminLogout();
-            alert('Session expired. Please log in again.');
-        }, 15 * 60 * 1000);
-    }
-    document.addEventListener('mousemove', resetSessionTimeout);
-    document.addEventListener('keydown', resetSessionTimeout);
-
-    document.getElementById('admin-login-form').onsubmit = function(e) {
-        e.preventDefault();
-        const username = document.getElementById('admin-username').value.trim().toLowerCase();
-        const password = document.getElementById('admin-password').value;
-        if (username === 'admin@kekeli' && password === 'admin123') {
-            sessionStorage.setItem('adminAuthenticated', 'true');
-            hideAdminLogin();
-            resetSessionTimeout();
-            document.getElementById('admin-login-error').style.display = 'none';
-            // Clear credentials
-            document.getElementById('admin-username').value = '';
-            document.getElementById('admin-password').value = '';
-        } else {
-            document.getElementById('admin-login-error').textContent = 'Invalid credentials';
-            document.getElementById('admin-login-error').style.display = 'block';
-        }
-    };
-    // Delegated event listener for logout button
-    document.addEventListener('click', function(e) {
-        if (e.target && e.target.id === 'admin-logout-btn') {
-            adminLogout();
-        }
-    });
-    window.onload = function() {
-        if (sessionStorage.getItem('adminAuthenticated') === 'true') {
-            hideAdminLogin();
-            resetSessionTimeout();
-        } else {
-            showAdminLogin();
-        }
-    };
-    </script>
-    <script>
-    // Fix logout button to always work
-    document.addEventListener('DOMContentLoaded', function() {
-        var btn = document.getElementById('admin-logout-btn');
-        if (btn) {
-            btn.onclick = function() {
-                if (window.adminManager) window.adminManager.adminLogout();
-            };
-        }
-    });
-    </script>
 </body>
 </html>

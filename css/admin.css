@@ -1,3 +1,25 @@
+/* Ensure admin login overlay is always visible and covers the screen */
+.admin-login-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(10, 30, 80, 0.95);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.admin-login-modal {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+    padding: 32px 24px;
+    max-width: 350px;
+    width: 100%;
+    text-align: center;
+}
 /* Admin Login Modal Overlay Fix */
 #admin-login-modal.modal {
     position: fixed;
