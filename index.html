@@ -46,7 +46,7 @@
                 </select>
                 <div class="balance-display" id="balance-display">
                     <i class="fas fa-wallet"></i>
-                    <span id="user-balance">₦0.00</span>
+                    <span id="user-balance">₵0.00</span>
                 </div>
                 <button class="btn-login" id="login-btn">Login</button>
                 <button class="btn-register" id="register-btn">Register</button>
@@ -74,7 +74,7 @@
                             <span class="stat-label">Players</span>
                         </div>
                         <div class="stat">
-                            <span class="stat-number">₦5M+</span>
+                            <span class="stat-number">₵5M+</span>
                             <span class="stat-label">Winnings</span>
                         </div>
                         <div class="stat">
@@ -164,10 +164,11 @@
                 <div class="wallet-overview">
                     <div class="balance-card">
                         <h3>Current Balance</h3>
-                        <div class="balance-amount" id="wallet-balance">₦0.00</div>
+                        <div class="balance-amount" id="wallet-balance">₵0.00</div>
                         <div class="balance-actions">
                             <button class="btn-primary" onclick="window.walletManager.showDepositModal()">Deposit</button>
                             <button class="btn-secondary" onclick="window.walletManager.showWithdrawModal()">Withdraw</button>
+                            <button class="btn-secondary" onclick="window.testWallet()" style="background: #ff9800;">Test Wallet</button>
                         </div>
                     </div>
                 </div>
@@ -242,7 +243,7 @@
                                 <span class="stat-label">Games Played</span>
                             </div>
                             <div class="stat-item">
-                                <span class="stat-value" id="total-won">₦0</span>
+                                <span class="stat-value" id="total-won">₵0</span>
                                 <span class="stat-label">Total Won</span>
                             </div>
                             <div class="stat-item">
@@ -381,7 +382,7 @@
                         <code id="user-referral-code">SPINX123</code>
                         <button class="btn-secondary" onclick="copyReferralCode()">Copy</button>
                     </div>
-                    <p>Share this code with friends and earn ₦500 for each successful referral!</p>
+                    <p>Share this code with friends and earn ₵500 for each successful referral!</p>
                     
                     <div class="referral-stats">
                         <div class="stat">
@@ -389,7 +390,7 @@
                             <span class="stat-label">Total Referrals</span>
                         </div>
                         <div class="stat">
-                            <span class="stat-number" id="referral-earnings">₦0</span>
+                            <span class="stat-number" id="referral-earnings">₵0</span>
                             <span class="stat-label">Earnings</span>
                         </div>
                     </div>

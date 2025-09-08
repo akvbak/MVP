@@ -342,3 +342,6 @@ document.addEventListener('DOMContentLoaded', () => {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = Utils;
 }
+
+// Initialize utils for browser
+window.utils = new Utils();

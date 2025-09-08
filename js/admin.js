@@ -348,11 +348,11 @@ class AdminManager {
         // Generate sample recent activity
         const activities = [
             'New user registration: User123',
-            'Withdrawal request: ₦50,000',
-            'Game win: ₦25,000 (Wheel)',
+            'Withdrawal request: ₵50,000',
+            'Game win: ₵25,000 (Coin Toss)',
             'KYC verification completed',
-            'Deposit processed: ₦10,000',
-            'Referral bonus paid: ₦500'
+            'Deposit processed: ₵10,000',
+            'Referral bonus paid: ₵500'
         ];
         
         activityContainer.innerHTML = activities.map(activity => `
@@ -950,9 +950,15 @@ class AdminManager {
 
     // Utility functions
     formatCurrency(amount) {
-        return new Intl.NumberFormat('en-NG', {
+        // Use the main app's currency formatting if available
+        if (window.app && typeof window.app.formatCurrency === 'function') {
+            return window.app.formatCurrency(amount);
+        }
+        
+        // Fallback to GHS formatting
+        return new Intl.NumberFormat('en-GH', {
             style: 'currency',
-            currency: 'NGN',
+            currency: 'GHS',
             minimumFractionDigits: 2
         }).format(amount);
     }

@@ -34,6 +34,7 @@ class GameManager {
         if (userData) {
             window.app.currentUser = JSON.parse(userData);
         }
+        console.log('Game balance display updated:', window.app.currentUser.balance); // Debug log
         const container = document.getElementById('game-iframe-container');
         if (!container) return;
         const balanceDiv = container.querySelector('.balance-display');
@@ -209,6 +210,7 @@ class GameManager {
             <div class="game-container modern-dice-game">
                 <div class="dice-game-header">
                     <h2><i class="fas fa-dice"></i> Dice Roll</h2>
+                    <div class="balance-display">Balance: ${window.app.formatCurrency(window.app.currentUser.balance)}</div>
                 </div>
                 <div class="dice-game-body">
                     <div class="dice-anim-area">
@@ -366,6 +368,7 @@ class GameManager {
             <div class="game-container modern-lucky-game">
                 <div class="lucky-game-header">
                     <h2>Lucky Number <span style="font-size:1.5rem;">🎯</span></h2>
+                    <div class="balance-display">Balance: ${window.app.formatCurrency(window.app.currentUser.balance)}</div>
                 </div>
                 <div class="lucky-game-body">
                     <div class="lucky-anim-area">

@@ -6,6 +6,22 @@ class AuthManager {
         this.loginAttempts = {};
         this.maxLoginAttempts = 5;
         this.lockoutDuration = 15 * 60 * 1000; // 15 minutes
+        
+        // Sync current user from app if it exists
+        this.syncCurrentUser();
+    }
+    
+    syncCurrentUser() {
+        const userData = localStorage.getItem('spinx_user');
+        if (userData) {
+            const user = JSON.parse(userData);
+            this.currentUser = user;
+            // Ensure user exists in users object
+            if (!this.users[user.id]) {
+                this.users[user.id] = user;
+                this.saveUsersToStorage();
+            }
+        }
     }
 
     loadUsersFromStorage() {
@@ -305,11 +321,21 @@ class AuthManager {
     }
 
     updateUserBalance(userId, amount, type, description, reference = null) {
+        console.log('updateUserBalance called:', { userId, amount, type, description }); // Debug log
+        
+        // Ensure users are loaded from storage
+        this.users = this.loadUsersFromStorage();
+        
         let user = this.users[userId];
-        if (!user) return false;
+        if (!user) {
+            console.error('User not found in users object:', userId);
+            console.log('Available users:', Object.keys(this.users));
+            return false;
+        }
 
         const oldBalance = user.balance;
         user.balance += amount;
+        console.log('Balance updated from', oldBalance, 'to', user.balance); // Debug log
 
         // Record transaction
         const transaction = {
@@ -348,6 +374,7 @@ class AuthManager {
             this.currentUser = this.sanitizeUser(user);
             localStorage.setItem('spinx_user', JSON.stringify(this.currentUser));
             window.app.currentUser = this.currentUser;
+            console.log('Updated current user balance:', this.currentUser.balance); // Debug log
             window.app.updateUI();
         }
 
@@ -386,9 +413,9 @@ class AuthManager {
         if (!referrer) return;
 
         // Check if this is the first deposit and meets minimum requirement
-        const minDepositForReferral = 1000; // ₦1,000
+        const minDepositForReferral = 1000; // ₵1,000
         if (user.totalDeposits <= depositAmount && depositAmount >= minDepositForReferral) {
-            const referralBonus = 500; // ₦500 referral bonus
+            const referralBonus = 500; // ₵500 referral bonus
             
             // Give bonus to referrer
             this.updateUserBalance(

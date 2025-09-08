@@ -6,7 +6,7 @@ class SpinXApp {
         this.isAuthenticated = false;
         // Currency management (store in NGN internally; display can switch)
         this.selectedCurrency = localStorage.getItem('spinx_currency') || 'GHS';
-        // Approximate NGN per unit of currency
+        // Approximate NGN per unit of currency (1 GHS ≈ 106 NGN, 1 USD ≈ 1600 NGN)
         this.currencyRatesNGN = { NGN: 1, GHS: 106, USD: 1600 };
         this.currencyLocales = { NGN: 'en-NG', GHS: 'en-GH', USD: 'en-US' };
         this.gameSettings = {
@@ -45,9 +45,17 @@ class SpinXApp {
             this.loadLeaderboard();
             this.loadTransactions();
             this.checkAuthStatus();
+            this.syncUserWithAuthManager();
         } catch (error) {
             console.error('Error initializing SpinX app:', error);
             this.showToast('Failed to initialize application. Please refresh the page.', 'error');
+        }
+    }
+    
+    syncUserWithAuthManager() {
+        if (this.currentUser && window.authManager) {
+            console.log('Syncing user with auth manager...'); // Debug log
+            window.authManager.syncCurrentUser();
         }
     }
 
@@ -94,6 +102,11 @@ class SpinXApp {
                 this.selectedCurrency = currencySelect.value;
                 localStorage.setItem('spinx_currency', this.selectedCurrency);
                 this.updateUI();
+                
+                // Update admin panel if it's open
+                if (window.adminManager && typeof window.adminManager.updateDashboard === 'function') {
+                    window.adminManager.updateDashboard();
+                }
             });
         }
 
@@ -234,6 +247,7 @@ class SpinXApp {
     }
 
     updateUI() {
+        console.log('updateUI called, current user balance:', this.currentUser ? this.currentUser.balance : 'no user'); // Debug log
         this.updateBalance();
         this.updateAuthButtons();
         this.updateNavigationVisibility();
@@ -247,9 +261,14 @@ class SpinXApp {
         const balanceElements = document.querySelectorAll('#user-balance, #wallet-balance');
         const balance = this.currentUser ? this.currentUser.balance : 0;
         const formattedBalance = this.formatCurrency(balance);
+        
+        console.log('updateBalance called:', { balance, formattedBalance, elementsFound: balanceElements.length }); // Debug log
 
         balanceElements.forEach(element => {
-            if (element) element.textContent = formattedBalance;
+            if (element) {
+                console.log('Updating element:', element.id, 'to:', formattedBalance); // Debug log
+                element.textContent = formattedBalance;
+            }
         });
     }
 
@@ -724,12 +743,98 @@ class SpinXApp {
         return phoneRegex.test(phone.replace(/\s/g, ''));
     }
 
+    validateCardNumber(cardNumber) {
+        // Remove spaces and non-digits
+        const cleaned = cardNumber.replace(/\s/g, '').replace(/\D/g, '');
+        
+        // Check if it's a valid length (13-19 digits)
+        if (cleaned.length < 13 || cleaned.length > 19) {
+            return false;
+        }
+        
+        // Luhn algorithm validation
+        let sum = 0;
+        let isEven = false;
+        
+        for (let i = cleaned.length - 1; i >= 0; i--) {
+            let digit = parseInt(cleaned[i]);
+            
+            if (isEven) {
+                digit *= 2;
+                if (digit > 9) {
+                    digit -= 9;
+                }
+            }
+            
+            sum += digit;
+            isEven = !isEven;
+        }
+        
+        return sum % 10 === 0;
+    }
+
+    validateExpiryDate(expiry) {
+        const expiryRegex = /^(0[1-9]|1[0-2])\/([0-9]{2})$/;
+        if (!expiryRegex.test(expiry)) {
+            return false;
+        }
+        
+        const [month, year] = expiry.split('/');
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear() % 100;
+        const currentMonth = currentDate.getMonth() + 1;
+        
+        const expYear = parseInt(year);
+        const expMonth = parseInt(month);
+        
+        if (expYear < currentYear || (expYear === currentYear && expMonth < currentMonth)) {
+            return false;
+        }
+        
+        return true;
+    }
+
+    validateCVV(cvv) {
+        const cvvRegex = /^[0-9]{3,4}$/;
+        return cvvRegex.test(cvv);
+    }
+
     sanitizeInput(input) {
         const div = document.createElement('div');
         div.textContent = input;
         return div.innerHTML;
     }
 }
+
+// Test wallet functionality
+window.testWallet = function() {
+    console.log('Testing wallet functionality...');
+    console.log('Current user:', window.app.currentUser);
+    console.log('Auth manager:', window.authManager);
+    console.log('Wallet manager:', window.walletManager);
+    
+    if (window.app.currentUser && window.authManager) {
+        console.log('Auth manager users:', window.authManager.users);
+        console.log('User exists in auth manager:', !!window.authManager.users[window.app.currentUser.id]);
+        
+        if (!window.authManager.users[window.app.currentUser.id]) {
+            console.log('User not found in auth manager, syncing...');
+            window.authManager.syncCurrentUser();
+        }
+        
+        console.log('Testing balance update...');
+        const oldBalance = window.app.currentUser.balance;
+        const result = window.authManager.updateUserBalance(
+            window.app.currentUser.id,
+            1000, // Add 1000 to balance
+            'test',
+            'Test transaction',
+            'TEST_' + Date.now()
+        );
+        console.log('Update result:', result);
+        console.log('Balance changed from', oldBalance, 'to', window.app.currentUser.balance);
+    }
+};
 
 // Global functions that are called from HTML
 function showSection(sectionName) {

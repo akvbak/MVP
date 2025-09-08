@@ -1,6 +1,7 @@
 // SpinX Wallet Manager
 class WalletManager {
     constructor() {
+        console.log('WalletManager constructor called'); // Debug log
         this.pendingWithdrawals = this.loadPendingWithdrawals();
         this.depositMethods = {
             'mobile-money': {
@@ -46,23 +47,40 @@ class WalletManager {
 
     // --- UI Initialization ---
     initUI() {
+        console.log('WalletManager init called'); // Debug log
         // Deposit button
         const depositBtn = document.querySelector('.btn-primary[onclick*="Deposit"]');
+        console.log('Deposit button found:', depositBtn); // Debug log
         if (depositBtn) depositBtn.onclick = () => this.showDepositModal();
         // Withdraw button
         const withdrawBtn = document.querySelector('.btn-secondary[onclick*="Withdraw"]');
+        console.log('Withdraw button found:', withdrawBtn); // Debug log
         if (withdrawBtn) withdrawBtn.onclick = () => this.showWithdrawModal();
     }
 
     // --- Deposit Modal ---
     showDepositModal() {
+        console.log('showDepositModal called'); // Debug log
         const modal = document.getElementById('deposit-modal');
         const content = document.getElementById('deposit-content');
+        
+        if (!modal) {
+            console.error('Deposit modal not found');
+            return;
+        }
+        if (!content) {
+            console.error('Deposit content not found');
+            return;
+        }
+        
         content.innerHTML = this.getDepositHTML();
         modal.classList.add('active');
         modal.style.display = 'flex';
+        
         // Attach method selection
-        content.querySelectorAll('.payment-method-card').forEach(card => {
+        const cards = content.querySelectorAll('.payment-method-card');
+        console.log('Payment method cards found:', cards.length); // Debug log
+        cards.forEach(card => {
             card.onclick = () => this.showDepositForm(card.dataset.method);
         });
     }
@@ -80,28 +98,39 @@ class WalletManager {
         }
     }
     processDeposit(form, method) {
+        console.log('processDeposit called with method:', method); // Debug log
         const amount = parseFloat(form.querySelector('#deposit-amount').value);
         const methodData = this.depositMethods[method];
+        
+        console.log('Amount:', amount, 'Method data:', methodData); // Debug log
         
         // Convert display amount to base currency for validation
         const amountBase = window.app.convertToBase(amount);
         const minAmountBase = window.app.convertToBase(methodData.minAmount);
         const maxAmountBase = window.app.convertToBase(methodData.maxAmount);
         
+        console.log('Amount base:', amountBase, 'Min:', minAmountBase, 'Max:', maxAmountBase); // Debug log
+        
         if (isNaN(amount) || amountBase < minAmountBase || amountBase > maxAmountBase) {
-            window.app.showToast(`Invalid deposit amount. Range: ${window.app.formatCurrency(methodData.minAmount)} - ${window.app.formatCurrency(methodData.maxAmount)}`, 'error');
+            const minAmountDisplay = window.app.convertFromBase(minAmountBase);
+            const maxAmountDisplay = window.app.convertFromBase(maxAmountBase);
+            window.app.showToast(`Invalid deposit amount. Range: ${window.app.formatCurrency(minAmountDisplay)} - ${window.app.formatCurrency(maxAmountDisplay)}`, 'error');
             return;
         }
         
         // Validate additional form fields based on method
         if (!this.validateDepositForm(form, method)) {
+            console.log('Form validation failed'); // Debug log
             return;
         }
+        
+        console.log('Starting deposit process...'); // Debug log
         
         // Simulate deposit
         window.app.showLoading();
         setTimeout(() => {
             window.app.hideLoading();
+            console.log('Updating user balance...'); // Debug log
             window.authManager.updateUserBalance(
                 window.app.currentUser.id,
                 amountBase,
@@ -112,7 +141,7 @@ class WalletManager {
             window.app.showToast('Deposit successful!', 'success');
             this.updateWalletUI();
             window.app.updateUI();
-            document.getElementById('deposit-modal').style.display = 'none';
+            this.resetModal();
         }, 1200);
     }
     getDepositHTML() {
@@ -124,7 +153,7 @@ class WalletManager {
                         <div class="method-icon"><i class="fas ${this.getMethodIcon(key)}"></i></div>
                         <h5>${method.name}</h5>
                         <p>Fee: ${(method.fee * 100).toFixed(1)}%</p>
-                        <p class="method-range">₦${method.minAmount.toLocaleString()} - ₦${method.maxAmount.toLocaleString()}</p>
+                        <p class="method-range">${window.app.formatCurrency(method.minAmount)} - ${window.app.formatCurrency(method.maxAmount)}</p>
                     </div>
                 `).join('')}
             </div>
@@ -136,11 +165,15 @@ class WalletManager {
         const minAmount = window.app.formatCurrency(methodData.minAmount);
         const maxAmount = window.app.formatCurrency(methodData.maxAmount);
         
+        // Convert min/max amounts to display currency
+        const minAmountDisplay = window.app.convertFromBase(methodData.minAmount);
+        const maxAmountDisplay = window.app.convertFromBase(methodData.maxAmount);
+        
         let formFields = `
             <div class="form-group">
                 <label>Amount (${window.app.getCurrencySymbol()})</label>
-                <input type="number" id="deposit-amount" min="${methodData.minAmount}" max="${methodData.maxAmount}" step="0.01" required>
-                <small class="form-hint">Range: ${minAmount} - ${maxAmount}</small>
+                <input type="number" id="deposit-amount" min="${minAmountDisplay}" max="${maxAmountDisplay}" step="0.01" required>
+                <small class="form-hint">Range: ${window.app.formatCurrency(minAmountDisplay)} - ${window.app.formatCurrency(maxAmountDisplay)}</small>
             </div>
         `;
         
@@ -195,7 +228,7 @@ class WalletManager {
         
         return `<form id="deposit-form">
             ${formFields}
-            <button type="submit" class="btn-primary btn-full">Deposit ${window.app.formatCurrency(methodData.minAmount)}</button>
+            <button type="submit" class="btn-primary btn-full">Deposit ${window.app.formatCurrency(minAmountDisplay)}</button>
         </form>`;
     }
 
@@ -222,11 +255,13 @@ class WalletManager {
         
         // Convert display amount to base currency for validation
         const amountBase = window.app.convertToBase(amount);
-        const minAmountBase = window.app.convertToBase(methodData.minAmount);
+        const minAmountBase = methodData.minAmount;
         const userBalanceBase = window.app.currentUser.balance;
         
         if (!method || isNaN(amount) || amountBase < minAmountBase || amountBase > userBalanceBase) {
-            window.app.showToast(`Invalid withdrawal amount. Range: ${window.app.formatCurrency(methodData.minAmount)} - ${window.app.formatCurrency(window.app.convertFromBase(userBalanceBase))}`, 'error');
+            const minAmountDisplay = window.app.convertFromBase(minAmountBase);
+            const userBalanceDisplay = window.app.convertFromBase(userBalanceBase);
+            window.app.showToast(`Invalid withdrawal amount. Range: ${window.app.formatCurrency(minAmountDisplay)} - ${window.app.formatCurrency(userBalanceDisplay)}`, 'error');
             return;
         }
         
@@ -248,27 +283,32 @@ class WalletManager {
             window.app.showToast('Withdrawal request submitted!', 'success');
             this.updateWalletUI();
             window.app.updateUI();
-            document.getElementById('deposit-modal').style.display = 'none';
+            this.resetModal();
         }, 1200);
     }
     getWithdrawHTML() {
         const user = window.app.currentUser;
         const userBalanceDisplay = window.app.formatCurrency(window.app.convertFromBase(user.balance));
         
+        // Get minimum withdrawal amount in display currency (use mobile money as default)
+        const defaultMethod = this.withdrawalMethods['mobile-money'];
+        const minWithdrawalBase = defaultMethod.minAmount;
+        const minWithdrawalDisplay = window.app.convertFromBase(minWithdrawalBase);
+        
         return `<form id="withdrawal-form">
             <div class="form-group">
                 <label>Withdrawal Method</label>
-                <select id="withdrawal-method" required>
-                    <option value="">Select method</option>
-                    ${Object.entries(this.withdrawalMethods).map(([key, method]) => `
-                        <option value="${key}">${method.name} (Fee: ${(method.fee * 100).toFixed(1)}%)</option>
-                    `).join('')}
-                </select>
+            <select id="withdrawal-method" required>
+                <option value="">Select method</option>
+                ${Object.entries(this.withdrawalMethods).map(([key, method]) => `
+                    <option value="${key}">${method.name} (Fee: ${(method.fee * 100).toFixed(1)}%)</option>
+                `).join('')}
+            </select>
             </div>
             <div class="form-group">
                 <label>Amount (${window.app.getCurrencySymbol()})</label>
-                <input type="number" id="withdrawal-amount" min="1000" step="0.01" required>
-                <small class="form-hint">Available: ${userBalanceDisplay}</small>
+                <input type="number" id="withdrawal-amount" min="${minWithdrawalDisplay}" step="0.01" required>
+                <small class="form-hint">Available: ${userBalanceDisplay} | Min: ${window.app.formatCurrency(minWithdrawalDisplay)}</small>
             </div>
             <div id="withdrawal-account-details" style="display:none;">
                 <!-- Account details will be populated based on method -->
@@ -286,6 +326,16 @@ class WalletManager {
         const transactionList = document.getElementById('transaction-list');
         if (transactionList && window.app.currentUser) {
             transactionList.innerHTML = this.getTransactionsHTML();
+        }
+    }
+
+    resetModal() {
+        const modal = document.getElementById('deposit-modal');
+        const content = document.getElementById('deposit-content');
+        if (modal && content) {
+            content.innerHTML = '';
+            modal.classList.remove('active');
+            modal.style.display = 'none';
         }
     }
     getTransactionsHTML() {
@@ -315,7 +365,7 @@ class WalletManager {
             const phone = form.querySelector('#deposit-phone').value;
             const network = form.querySelector('#deposit-network').value;
             
-            if (!window.utils.validatePhone(phone)) {
+            if (!window.app.validatePhone(phone)) {
                 window.app.showToast('Please enter a valid phone number', 'error');
                 return false;
             }
@@ -330,17 +380,17 @@ class WalletManager {
             const cvv = form.querySelector('#deposit-cvv').value;
             const cardholder = form.querySelector('#deposit-cardholder').value;
             
-            if (!window.utils.validateCardNumber(cardNumber)) {
+            if (!window.app.validateCardNumber(cardNumber)) {
                 window.app.showToast('Please enter a valid card number', 'error');
                 return false;
             }
             
-            if (!window.utils.validateExpiryDate(expiry)) {
+            if (!window.app.validateExpiryDate(expiry)) {
                 window.app.showToast('Please enter a valid expiry date (MM/YY)', 'error');
                 return false;
             }
             
-            if (!window.utils.validateCVV(cvv)) {
+            if (!window.app.validateCVV(cvv)) {
                 window.app.showToast('Please enter a valid CVV', 'error');
                 return false;
             }
@@ -372,7 +422,7 @@ class WalletManager {
             const phone = form.querySelector('#withdrawal-phone').value;
             const network = form.querySelector('#withdrawal-network').value;
             
-            if (!window.utils.validatePhone(phone)) {
+            if (!window.app.validatePhone(phone)) {
                 window.app.showToast('Please enter a valid phone number', 'error');
                 return false;
             }
@@ -431,4 +481,14 @@ class WalletManager {
     }
 }
 
+console.log('Initializing wallet manager...'); // Debug log
 window.walletManager = new WalletManager();
+console.log('Wallet manager initialized:', window.walletManager); // Debug log
+
+// Initialize wallet manager when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded, initializing wallet manager UI...'); // Debug log
+    if (window.walletManager) {
+        window.walletManager.initUI();
+    }
+});

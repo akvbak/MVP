@@ -12,7 +12,7 @@
     width: 100%;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     margin-bottom: 18px;
 }
 .dice-game-header h2 {
@@ -126,7 +126,7 @@
     width: 100%;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     margin-bottom: 18px;
 }
 .lucky-game-header h2 {
