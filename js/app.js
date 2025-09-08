@@ -836,6 +836,31 @@ window.testWallet = function() {
     }
 };
 
+// Test currency conversion
+window.testCurrency = function() {
+    console.log('Testing currency conversion...');
+    console.log('Selected currency:', window.app.selectedCurrency);
+    console.log('Currency rates:', window.app.currencyRatesNGN);
+    
+    const testAmount = 1060; // 10 GHS in base currency
+    console.log('Test amount (base):', testAmount);
+    
+    const converted = window.app.convertFromBase(testAmount);
+    console.log('Converted amount:', converted);
+    
+    const formatted = window.app.formatCurrency(testAmount);
+    console.log('Formatted amount:', formatted);
+    
+    // Test deposit method amounts
+    if (window.walletManager) {
+        console.log('Deposit methods:', window.walletManager.depositMethods);
+        const mobileMoney = window.walletManager.depositMethods['mobile-money'];
+        console.log('Mobile Money min amount:', mobileMoney.minAmount);
+        console.log('Mobile Money min converted:', window.app.convertFromBase(mobileMoney.minAmount));
+        console.log('Mobile Money min formatted:', window.app.formatCurrency(mobileMoney.minAmount));
+    }
+};
+
 // Global functions that are called from HTML
 function showSection(sectionName) {
     window.app.showSection(sectionName);

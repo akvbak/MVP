@@ -11,18 +11,18 @@ class GameManager {
         this.gameSettings = {
             coin: {
                 houseEdge: 0.02,
-                minBet: 10,
+                minBet: 1060, // 10 GHS in base currency (NGN)
                 maxBet: 100000
             },
             dice: {
                 houseEdge: 0.05,
-                minBet: 10,
+                minBet: 1060, // 10 GHS in base currency (NGN)
                 maxBet: 100000,
                 payouts: { even: 2, odd: 2, specific: 6 }
             },
             lucky: {
                 houseEdge: 0.08,
-                minBet: 10,
+                minBet: 1060, // 10 GHS in base currency (NGN)
                 maxBet: 100000
             }
         };
@@ -34,7 +34,6 @@ class GameManager {
         if (userData) {
             window.app.currentUser = JSON.parse(userData);
         }
-        console.log('Game balance display updated:', window.app.currentUser.balance); // Debug log
         const container = document.getElementById('game-iframe-container');
         if (!container) return;
         const balanceDiv = container.querySelector('.balance-display');
@@ -85,7 +84,7 @@ class GameManager {
                     <div class="coin-controls">
                         <div class="bet-group">
                         <label>Bet Amount</label>
-                            <input type="number" id="coin-bet" value="100" min="10" max="100000" step="10">
+                            <input type="number" id="coin-bet" value="100" min="${window.app.convertFromBase(this.gameSettings.coin.minBet)}" max="${window.app.convertFromBase(this.gameSettings.coin.maxBet)}" step="10">
                         </div>
                         <div class="choice-group">
                             <label>Choose</label>
@@ -222,7 +221,7 @@ class GameManager {
                     <div class="dice-controls">
                         <div class="bet-group">
                             <label>Bet Amount</label>
-                            <input type="number" id="dice-bet" value="100" min="10" max="100000" step="10">
+                            <input type="number" id="dice-bet" value="100" min="${window.app.convertFromBase(this.gameSettings.dice.minBet)}" max="${window.app.convertFromBase(this.gameSettings.dice.maxBet)}" step="10">
                         </div>
                         <div class="choice-group">
                             <label>Predict</label>
@@ -379,7 +378,7 @@ class GameManager {
                     <div class="lucky-controls">
                         <div class="bet-group">
                             <label>Bet Amount</label>
-                            <input type="number" id="lucky-bet" value="100" min="10" max="100000" step="10">
+                            <input type="number" id="lucky-bet" value="100" min="${window.app.convertFromBase(this.gameSettings.lucky.minBet)}" max="${window.app.convertFromBase(this.gameSettings.lucky.maxBet)}" step="10">
                         </div>
                         <div class="choice-group">
                             <label>Pick a number (1-10)</label>

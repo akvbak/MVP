@@ -1,44 +1,43 @@
 // SpinX Wallet Manager
 class WalletManager {
     constructor() {
-        console.log('WalletManager constructor called'); // Debug log
         this.pendingWithdrawals = this.loadPendingWithdrawals();
         this.depositMethods = {
             'mobile-money': {
                 name: 'Mobile Money',
                 providers: ['MTN', 'Airtel', 'Glo', '9mobile'],
                 fee: 0,
-                minAmount: 100,
-                maxAmount: 500000
+                minAmount: 1060, // 10 GHS in base currency (NGN)
+                maxAmount: 530000 // 5,000 GHS in base currency (NGN)
             },
             'card': {
                 name: 'Debit/Credit Card',
                 providers: ['Visa', 'Mastercard', 'Verve'],
                 fee: 0,
-                minAmount: 100,
-                maxAmount: 1000000
+                minAmount: 1060, // 10 GHS in base currency (NGN)
+                maxAmount: 1060000 // 10,000 GHS in base currency (NGN)
             },
             'crypto': {
                 name: 'Cryptocurrency',
                 providers: ['Bitcoin', 'USDT', 'Ethereum'],
                 fee: 0,
-                minAmount: 1000,
-                maxAmount: 10000000
+                minAmount: 1060, // 10 GHS in base currency (NGN)
+                maxAmount: 5300000 // 50,000 GHS in base currency (NGN)
             }
         };
         this.withdrawalMethods = {
             'mobile-money': {
                 name: 'Mobile Money',
                 fee: 0.01,
-                minAmount: 1000,
-                maxAmount: 500000,
+                minAmount: 1060, // 10 GHS minimum in base currency (NGN)
+                maxAmount: 1060000, // 10,000 GHS per day in base currency (NGN)
                 processingTime: '5-10 minutes'
             },
             'bank': {
                 name: 'Bank Transfer',
                 fee: 0.01,
-                minAmount: 2000,
-                maxAmount: 1000000,
+                minAmount: 1060, // 10 GHS minimum in base currency (NGN)
+                maxAmount: 1060000, // 10,000 GHS per day in base currency (NGN)
                 processingTime: '1-3 business days'
             }
         };
@@ -47,39 +46,32 @@ class WalletManager {
 
     // --- UI Initialization ---
     initUI() {
-        console.log('WalletManager init called'); // Debug log
         // Deposit button
         const depositBtn = document.querySelector('.btn-primary[onclick*="Deposit"]');
-        console.log('Deposit button found:', depositBtn); // Debug log
         if (depositBtn) depositBtn.onclick = () => this.showDepositModal();
         // Withdraw button
         const withdrawBtn = document.querySelector('.btn-secondary[onclick*="Withdraw"]');
-        console.log('Withdraw button found:', withdrawBtn); // Debug log
         if (withdrawBtn) withdrawBtn.onclick = () => this.showWithdrawModal();
     }
 
     // --- Deposit Modal ---
     showDepositModal() {
-        console.log('showDepositModal called'); // Debug log
         const modal = document.getElementById('deposit-modal');
         const content = document.getElementById('deposit-content');
+        const title = document.getElementById('deposit-modal-title');
         
-        if (!modal) {
-            console.error('Deposit modal not found');
-            return;
-        }
-        if (!content) {
-            console.error('Deposit content not found');
+        if (!modal || !content) {
+            console.error('Deposit modal or content not found');
             return;
         }
         
+        if (title) title.textContent = 'Deposit Funds';
         content.innerHTML = this.getDepositHTML();
         modal.classList.add('active');
         modal.style.display = 'flex';
         
         // Attach method selection
         const cards = content.querySelectorAll('.payment-method-card');
-        console.log('Payment method cards found:', cards.length); // Debug log
         cards.forEach(card => {
             card.onclick = () => this.showDepositForm(card.dataset.method);
         });
@@ -88,6 +80,7 @@ class WalletManager {
         const container = document.getElementById('deposit-form-container');
         container.innerHTML = this.getDepositFormHTML(method);
         container.style.display = 'block';
+        
         // Attach submit handler
         const form = container.querySelector('#deposit-form');
         if (form) {
@@ -96,20 +89,25 @@ class WalletManager {
                 this.processDeposit(form, method);
             });
         }
+        
+        // Update deposit button amount when user types
+        const amountInput = container.querySelector('#deposit-amount');
+        const buttonAmount = container.querySelector('#deposit-button-amount');
+        if (amountInput && buttonAmount) {
+            amountInput.addEventListener('input', () => {
+                const amount = parseFloat(amountInput.value) || 0;
+                buttonAmount.textContent = window.app.formatCurrency(window.app.convertToBase(amount));
+            });
+        }
     }
     processDeposit(form, method) {
-        console.log('processDeposit called with method:', method); // Debug log
         const amount = parseFloat(form.querySelector('#deposit-amount').value);
         const methodData = this.depositMethods[method];
         
-        console.log('Amount:', amount, 'Method data:', methodData); // Debug log
-        
         // Convert display amount to base currency for validation
         const amountBase = window.app.convertToBase(amount);
-        const minAmountBase = window.app.convertToBase(methodData.minAmount);
-        const maxAmountBase = window.app.convertToBase(methodData.maxAmount);
-        
-        console.log('Amount base:', amountBase, 'Min:', minAmountBase, 'Max:', maxAmountBase); // Debug log
+        const minAmountBase = methodData.minAmount; // Already in base currency
+        const maxAmountBase = methodData.maxAmount; // Already in base currency
         
         if (isNaN(amount) || amountBase < minAmountBase || amountBase > maxAmountBase) {
             const minAmountDisplay = window.app.convertFromBase(minAmountBase);
@@ -120,17 +118,13 @@ class WalletManager {
         
         // Validate additional form fields based on method
         if (!this.validateDepositForm(form, method)) {
-            console.log('Form validation failed'); // Debug log
             return;
         }
-        
-        console.log('Starting deposit process...'); // Debug log
         
         // Simulate deposit
         window.app.showLoading();
         setTimeout(() => {
             window.app.hideLoading();
-            console.log('Updating user balance...'); // Debug log
             window.authManager.updateUserBalance(
                 window.app.currentUser.id,
                 amountBase,
@@ -148,26 +142,29 @@ class WalletManager {
         return `<div class="deposit-methods">
             <h4>Choose Deposit Method</h4>
             <div class="payment-methods-grid">
-                ${Object.entries(this.depositMethods).map(([key, method]) => `
+                ${Object.entries(this.depositMethods).map(([key, method]) => {
+                    const minDisplay = window.app.convertFromBase(method.minAmount);
+                    const maxDisplay = window.app.convertFromBase(method.maxAmount);
+                    return `
                     <div class="payment-method-card" data-method="${key}">
                         <div class="method-icon"><i class="fas ${this.getMethodIcon(key)}"></i></div>
                         <h5>${method.name}</h5>
                         <p>Fee: ${(method.fee * 100).toFixed(1)}%</p>
-                        <p class="method-range">${window.app.formatCurrency(method.minAmount)} - ${window.app.formatCurrency(method.maxAmount)}</p>
+                            <p class="method-range">${window.app.formatCurrency(minDisplay)} - ${window.app.formatCurrency(maxDisplay)}</p>
                     </div>
-                `).join('')}
+                    `;
+                }).join('')}
             </div>
             <div id="deposit-form-container" style="display:none;"></div>
         </div>`;
     }
     getDepositFormHTML(method) {
         const methodData = this.depositMethods[method];
-        const minAmount = window.app.formatCurrency(methodData.minAmount);
-        const maxAmount = window.app.formatCurrency(methodData.maxAmount);
         
-        // Convert min/max amounts to display currency
+        // Convert min/max amounts from base currency to display currency
         const minAmountDisplay = window.app.convertFromBase(methodData.minAmount);
         const maxAmountDisplay = window.app.convertFromBase(methodData.maxAmount);
+        
         
         let formFields = `
             <div class="form-group">
@@ -228,7 +225,7 @@ class WalletManager {
         
         return `<form id="deposit-form">
             ${formFields}
-            <button type="submit" class="btn-primary btn-full">Deposit ${window.app.formatCurrency(minAmountDisplay)}</button>
+            <button type="submit" class="btn-primary btn-full">Deposit <span id="deposit-button-amount">${window.app.formatCurrency(minAmountDisplay)}</span></button>
         </form>`;
     }
 
@@ -236,15 +233,42 @@ class WalletManager {
     showWithdrawModal() {
         const modal = document.getElementById('deposit-modal');
         const content = document.getElementById('deposit-content');
+        const title = document.getElementById('deposit-modal-title');
+        
+        if (!modal || !content) {
+            console.error('Withdrawal modal or content not found');
+            return;
+        }
+        
+        if (title) title.textContent = 'Withdraw Funds';
         content.innerHTML = this.getWithdrawHTML();
         modal.classList.add('active');
         modal.style.display = 'flex';
+        
         // Attach submit handler
         const form = content.querySelector('#withdrawal-form');
         if (form) {
             form.addEventListener('submit', e => {
                 e.preventDefault();
                 this.processWithdrawal(form);
+            });
+        }
+        
+        // Update withdrawal button amount when user types
+        const amountInput = content.querySelector('#withdrawal-amount');
+        const buttonAmount = content.querySelector('#withdrawal-button-amount');
+        if (amountInput && buttonAmount) {
+            amountInput.addEventListener('input', () => {
+                const amount = parseFloat(amountInput.value) || 0;
+                buttonAmount.textContent = window.app.formatCurrency(window.app.convertToBase(amount));
+            });
+        }
+        
+        // Handle method selection to show account details
+        const methodSelect = content.querySelector('#withdrawal-method');
+        if (methodSelect) {
+            methodSelect.addEventListener('change', () => {
+                this.updateWithdrawalAccountDetails(methodSelect.value);
             });
         }
     }
@@ -255,13 +279,25 @@ class WalletManager {
         
         // Convert display amount to base currency for validation
         const amountBase = window.app.convertToBase(amount);
-        const minAmountBase = methodData.minAmount;
-        const userBalanceBase = window.app.currentUser.balance;
+        const minAmountBase = methodData.minAmount; // Already in base currency
+        const userBalanceBase = window.app.currentUser.balance; // Already in base currency
+        
+        // Check daily withdrawal limit
+        const dailyWithdrawalLimit = 1060000; // 10,000 GHS per day in base currency
+        const todayWithdrawals = this.getTodayWithdrawals();
         
         if (!method || isNaN(amount) || amountBase < minAmountBase || amountBase > userBalanceBase) {
             const minAmountDisplay = window.app.convertFromBase(minAmountBase);
             const userBalanceDisplay = window.app.convertFromBase(userBalanceBase);
             window.app.showToast(`Invalid withdrawal amount. Range: ${window.app.formatCurrency(minAmountDisplay)} - ${window.app.formatCurrency(userBalanceDisplay)}`, 'error');
+            return;
+        }
+        
+        // Check if this withdrawal would exceed daily limit
+        if (todayWithdrawals + amountBase > dailyWithdrawalLimit) {
+            const remainingLimit = dailyWithdrawalLimit - todayWithdrawals;
+            const remainingLimitDisplay = window.app.convertFromBase(remainingLimit);
+            window.app.showToast(`Daily withdrawal limit exceeded. You can withdraw up to ${window.app.formatCurrency(remainingLimitDisplay)} more today.`, 'error');
             return;
         }
         
@@ -295,6 +331,13 @@ class WalletManager {
         const minWithdrawalBase = defaultMethod.minAmount;
         const minWithdrawalDisplay = window.app.convertFromBase(minWithdrawalBase);
         
+        // Get daily withdrawal limit info
+        const dailyLimitBase = 1060000; // 10,000 GHS per day
+        const dailyLimitDisplay = window.app.convertFromBase(dailyLimitBase);
+        const todayWithdrawals = this.getTodayWithdrawals();
+        const remainingLimit = Math.max(0, dailyLimitBase - todayWithdrawals);
+        const remainingLimitDisplay = window.app.convertFromBase(remainingLimit);
+        
         return `<form id="withdrawal-form">
             <div class="form-group">
                 <label>Withdrawal Method</label>
@@ -307,13 +350,13 @@ class WalletManager {
             </div>
             <div class="form-group">
                 <label>Amount (${window.app.getCurrencySymbol()})</label>
-                <input type="number" id="withdrawal-amount" min="${minWithdrawalDisplay}" step="0.01" required>
-                <small class="form-hint">Available: ${userBalanceDisplay} | Min: ${window.app.formatCurrency(minWithdrawalDisplay)}</small>
+                <input type="number" id="withdrawal-amount" min="${minWithdrawalDisplay}" max="${remainingLimitDisplay}" step="0.01" required>
+                <small class="form-hint">Available: ${userBalanceDisplay} | Min: ${window.app.formatCurrency(minWithdrawalDisplay)} | Daily Limit: ${window.app.formatCurrency(remainingLimitDisplay)} remaining</small>
             </div>
             <div id="withdrawal-account-details" style="display:none;">
                 <!-- Account details will be populated based on method -->
             </div>
-            <button type="submit" class="btn-primary btn-full">Request Withdrawal</button>
+            <button type="submit" class="btn-primary btn-full">Withdraw <span id="withdrawal-button-amount">${window.app.formatCurrency(minWithdrawalDisplay)}</span></button>
         </form>`;
     }
 
@@ -332,8 +375,10 @@ class WalletManager {
     resetModal() {
         const modal = document.getElementById('deposit-modal');
         const content = document.getElementById('deposit-content');
+        const title = document.getElementById('deposit-modal-title');
         if (modal && content) {
             content.innerHTML = '';
+            if (title) title.textContent = 'Wallet';
             modal.classList.remove('active');
             modal.style.display = 'none';
         }
@@ -357,6 +402,21 @@ class WalletManager {
     loadPendingWithdrawals() {
         const withdrawals = localStorage.getItem('spinx_withdrawals');
         return withdrawals ? JSON.parse(withdrawals) : [];
+    }
+    
+    getTodayWithdrawals() {
+        const today = new Date().toDateString();
+        const user = window.app.currentUser;
+        if (!user || !user.transactions) return 0;
+        
+        // Get all withdrawal transactions from today
+        const todayWithdrawals = user.transactions.filter(transaction => {
+            const transactionDate = new Date(transaction.date).toDateString();
+            return transactionDate === today && transaction.type === 'withdrawal' && transaction.amount < 0;
+        });
+        
+        // Sum up the absolute amounts
+        return todayWithdrawals.reduce((total, transaction) => total + Math.abs(transaction.amount), 0);
     }
 
     // --- Validation Methods ---
@@ -479,15 +539,63 @@ class WalletManager {
             processingTime: methodData.processingTime
         };
     }
+
+    updateWithdrawalAccountDetails(method) {
+        const container = document.getElementById('withdrawal-account-details');
+        if (!container) return;
+        
+        if (method === 'mobile-money') {
+            container.innerHTML = `
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="withdrawal-phone" placeholder="08012345678" required>
+                </div>
+                <div class="form-group">
+                    <label>Network</label>
+                    <select id="withdrawal-network" required>
+                        <option value="">Select Network</option>
+                        <option value="MTN">MTN</option>
+                        <option value="Airtel">Airtel</option>
+                        <option value="Glo">Glo</option>
+                        <option value="9mobile">9mobile</option>
+                    </select>
+                </div>
+            `;
+            container.style.display = 'block';
+        } else if (method === 'bank') {
+            container.innerHTML = `
+                <div class="form-group">
+                    <label>Bank</label>
+                    <select id="withdrawal-bank" required>
+                        <option value="">Select Bank</option>
+                        <option value="Access Bank">Access Bank</option>
+                        <option value="First Bank">First Bank</option>
+                        <option value="GTBank">GTBank</option>
+                        <option value="Zenith Bank">Zenith Bank</option>
+                        <option value="UBA">UBA</option>
+                        <option value="Fidelity Bank">Fidelity Bank</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Account Number</label>
+                    <input type="text" id="withdrawal-account" placeholder="1234567890" required>
+                </div>
+                <div class="form-group">
+                    <label>Account Name</label>
+                    <input type="text" id="withdrawal-account-name" placeholder="John Doe" required>
+                </div>
+            `;
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
+        }
+    }
 }
 
-console.log('Initializing wallet manager...'); // Debug log
 window.walletManager = new WalletManager();
-console.log('Wallet manager initialized:', window.walletManager); // Debug log
 
 // Initialize wallet manager when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM loaded, initializing wallet manager UI...'); // Debug log
     if (window.walletManager) {
         window.walletManager.initUI();
     }
